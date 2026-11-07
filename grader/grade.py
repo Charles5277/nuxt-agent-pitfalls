@@ -174,17 +174,17 @@ if __name__ == '__main__':
             tgt = agg if k.startswith('P_') else aggB
             tgt[(r['arm'], r['cond'])][0] += int(bool(v)); tgt[(r['arm'], r['cond'])][1] += 1
             if k.startswith('P_'): per[(r['task'], k, r['arm'], r['cond'])][0] += int(bool(v)); per[(r['task'], k, r['arm'], r['cond'])][1] += 1
-    arms = ['opus55-medium', 'sonnet55-high', 'haiku55-xhigh', 'gpt61sol-high']; conds = ['bare', 'official']
+    arms = ['claude-opus-5-5@medium', 'claude-sonnet-5-5@high', 'claude-haiku-5-5@xhigh', 'gpt-6.1-sol@high']; conds = ['bare', 'official']
     print('== pitfall checks passed (P_*), by arm x cond')
-    for a in arms: print(a.ljust(15), '  '.join(f"{c}:{agg[(a,c)][0]}/{agg[(a,c)][1]}" for c in conds), ' | basic', '  '.join(f"{c}:{aggB[(a,c)][0]}/{aggB[(a,c)][1]}" for c in conds))
+    for a in arms: print(a.ljust(26), '  '.join(f"{c}:{agg[(a,c)][0]}/{agg[(a,c)][1]}" for c in conds), ' | basic', '  '.join(f"{c}:{aggB[(a,c)][0]}/{aggB[(a,c)][1]}" for c in conds))
     print('== per check (bare / official)')
     keys = sorted({(k[0], k[1]) for k in per})
-    print('check'.ljust(38) + ''.join(a[:10].rjust(16) for a in arms))
+    print('check'.ljust(38) + ''.join(a.rjust(30) for a in arms))
     for t, k in keys:
-        print(f"{t} {k}".ljust(38) + ''.join(f"{per[(t,k,a,'bare')][0]}/{per[(t,k,a,'bare')][1]} {per[(t,k,a,'official')][0]}/{per[(t,k,a,'official')][1]}".rjust(16) for a in arms))
+        print(f"{t} {k}".ljust(38) + ''.join(f"{per[(t,k,a,'bare')][0]}/{per[(t,k,a,'bare')][1]} {per[(t,k,a,'official')][0]}/{per[(t,k,a,'official')][1]}".rjust(30) for a in arms))
     print('== tool use in official cond (runs using any MCP / skill)')
     for a in arms:
         rs = [r for r in rows if r['arm'] == a and r['cond'] == 'official']
         mcp = sum(1 for r in rs if any(('mcp' in k or k.split(':')[0] in ('nuxt', 'nuxt-ui', 'nuxthub')) for k in r['tools']))
         sk = sum(1 for r in rs if any(('Skill' in k or 'SKILL.md' in k or 'skills/nuxt-ui' in k) for k in r['tools']))
-        print(a.ljust(15), f"runs={len(rs)} mcp_used={mcp} skill_used={sk}")
+        print(a.ljust(26), f"runs={len(rs)} mcp_used={mcp} skill_used={sk}")

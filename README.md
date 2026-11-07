@@ -4,12 +4,12 @@ Do current coding agents still hit the Nuxt pitfalls we kept running into, and d
 
 Five tasks, one per pitfall area. Four model/harness arms. Two environments. Three runs per cell. 120 runs in total, all graded mechanically.
 
-| Arm | Harness | Model | Effort |
+| Arm (`model-ID@effort`) | Harness | Model | Effort |
 | --- | --- | --- | --- |
-| `opus55-medium` | Claude Code 2.1.319 | Claude Opus 5.5 | medium |
-| `sonnet55-high` | Claude Code 2.1.319 | Claude Sonnet 5.5 | high |
-| `haiku55-xhigh` | Claude Code 2.1.319 | Claude Haiku 5.5 | xhigh |
-| `gpt61sol-high` | Codex CLI 0.165.0 | GPT-6.1 sol | high |
+| `claude-opus-5-5@medium` | Claude Code 2.1.319 | Claude Opus 5.5 | medium |
+| `claude-sonnet-5-5@high` | Claude Code 2.1.319 | Claude Sonnet 5.5 | high |
+| `claude-haiku-5-5@xhigh` | Claude Code 2.1.319 | Claude Haiku 5.5 | xhigh |
+| `gpt-6.1-sol@high` | Codex CLI 0.165.0 | GPT-6.1-Sol | high |
 
 | Environment | What the agent gets |
 | --- | --- |
@@ -22,7 +22,7 @@ The prompt is identical in both environments. It does not mention the tools, so 
 
 Pitfall checks passed, out of 3 runs per cell (`bare` / `official`):
 
-| Pitfall check | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 | GPT-6.1 sol |
+| Pitfall check | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 | GPT-6.1-Sol |
 | --- | --- | --- | --- | --- |
 | **1. Nuxt UI** body in `#body`, no stray children next to named slots, width via `:ui` not `class` | 3/3 · 3/3 | 3/3 · 3/3 | 3/3 · 3/3 | 3/3 · 3/3 |
 | **2a.** no top-level `await $fetch` in setup | 3/3 · 3/3 | 3/3 · 3/3 | 3/3 · 3/3 | 3/3 · 3/3 |
@@ -79,7 +79,7 @@ Requires Linux with `bwrap`, Claude Code and Codex CLI installed and logged in.
 export CLAUDE_BIN=/path/to/native/claude        # the binary, not a wrapper script
 export CODEX_PKG=/path/to/node_modules/@openai/codex
 runner/setup.sh
-for t in t1 t2 t3 t4 t5; do for a in opus55-medium sonnet55-high haiku55-xhigh gpt61sol-high; do
+for t in t1 t2 t3 t4 t5; do for a in claude-opus-5-5@medium claude-sonnet-5-5@high claude-haiku-5-5@xhigh gpt-6.1-sol@high; do
   for c in bare official; do for r in 1 2 3; do echo "runner/run.sh $t $a $c $r"; done; done; done; done \
   | xargs -P 8 -L 1 env
 python3 grader/grade.py results/raw results
