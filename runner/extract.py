@@ -17,4 +17,5 @@ for line in open(src, encoding='utf-8', errors='replace'):
         if d.get('type') == 'item.completed' and it.get('type') == 'mcp_tool_call': tools[it.get('server', '') + ':' + it.get('tool', '')] += 1
         if d.get('type') == 'item.completed' and it.get('type') == 'command_execution': tools['shell:' + it.get('command', '')[-160:]] += 1
 if res is not None: open(out_txt, 'w').write(res)
-open(out_tools, 'w').write(json.dumps(tools, ensure_ascii=False))
+import re  # tool keys can contain absolute paths of the machine that ran the batch; keep them out of committed results
+open(out_tools, 'w').write(re.sub(r'/home/[^/\s"\']+/', '~/', json.dumps(tools, ensure_ascii=False)))

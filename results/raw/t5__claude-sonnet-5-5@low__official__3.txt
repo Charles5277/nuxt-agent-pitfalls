@@ -1,0 +1,116 @@
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Set via NUXT_STRIPE_WEBHOOK_SECRET
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  routeRules: {
+    // Stripe cannot send a CSRF token; the request is authenticated by its signature instead.
+    '/api/webhooks/stripe': { security: { csrf: false } },
+  },
+
+  // Dev only: Vite HMR needs websocket + inline/eval scripts. Production CSP is unchanged.
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          'connect-src': ["'self'", 'ws:', 'wss:', 'http://localhost:*', 'http://127.0.0.1:*'],
+          'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          'style-src': ["'self'", "'unsafe-inline'"],
+        },
+        crossOriginEmbedderPolicy: false,
+      },
+    },
+  },
+})
+```
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const TOLERANCE_SECONDS = 300
+
+function verifyStripeSignature(payload: string, header: string, secret: string): boolean {
+  const parts = header.split(',').map(p => p.trim().split('='))
+  const timestamp = parts.find(([k]) => k === 't')?.[1]
+  const signatures = parts.filter(([k]) => k === 'v1').map(([, v]) => v)
+  if (!timestamp || !signatures.length) return false
+
+  const age = Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp))
+  if (!Number.isFinite(age) || age > TOLERANCE_SECONDS) return false
+
+  const expected = createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest()
+  return signatures.some((sig) => {
+    const buf = Buffer.from(sig, 'hex')
+    return buf.length === expected.length && timingSafeEqual(buf, expected)
+  })
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Webhook secret not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing stripe-signature header' })
+  }
+
+  const rawBody = await readRawBody(event, 'utf8')
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty body' })
+  }
+
+  if (!verifyStripeSignature(rawBody, signature, stripeWebhookSecret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid signature' })
+  }
+
+  let stripeEvent: { id: string, type: string, data: { object: Record<string, any> } }
+  try {
+    stripeEvent = JSON.parse(rawBody)
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid payload' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed': {
+      const session = stripeEvent.data.object
+      console.info('[stripe] checkout.session.completed', {
+        eventId: stripeEvent.id,
+        sessionId: session.id,
+        customer: session.customer,
+        email: session.customer_details?.email,
+        amountTotal: session.amount_total,
+        currency: session.currency,
+        paymentStatus: session.payment_status,
+        clientReferenceId: session.client_reference_id,
+      })
+      // TODO: fulfil the order (idempotently, keyed on stripeEvent.id / session.id)
+      break
+    }
+    default:
+      break
+  }
+
+  return { received: true }
+})
+```
+=== END ===

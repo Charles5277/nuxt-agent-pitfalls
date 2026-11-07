@@ -1,0 +1,138 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const SIGNATURE_TOLERANCE_SECONDS = 300
+
+interface StripeCheckoutSession {
+  id: string
+  payment_status: string
+  customer?: string | null
+  customer_details?: { email?: string | null } | null
+  metadata?: Record<string, string> | null
+  amount_total?: number | null
+  currency?: string | null
+}
+
+interface StripeEvent {
+  id: string
+  type: string
+  created: number
+  data: { object: unknown }
+}
+
+function verifyStripeSignature(payload: string, header: string, secret: string): boolean {
+  const parts = header.split(',').map((part) => {
+    const idx = part.indexOf('=')
+    return idx === -1 ? [part, ''] : [part.slice(0, idx), part.slice(idx + 1)]
+  })
+
+  const timestamp = parts.find(([key]) => key === 't')?.[1]
+  const signatures = parts.filter(([key]) => key === 'v1').map(([, value]) => value)
+
+  if (!timestamp || signatures.length === 0) return false
+
+  const ts = Number(timestamp)
+  if (!Number.isFinite(ts)) return false
+
+  const nowSeconds = Math.floor(Date.now() / 1000)
+  if (Math.abs(nowSeconds - ts) > SIGNATURE_TOLERANCE_SECONDS) return false
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestamp}.${payload}`, 'utf8')
+    .digest()
+
+  return signatures.some((sig) => {
+    if (!/^[0-9a-f]+$/i.test(sig)) return false
+    const candidate = Buffer.from(sig, 'hex')
+    return candidate.length === expected.length && timingSafeEqual(candidate, expected)
+  })
+}
+
+async function handleCheckoutSessionCompleted(session: StripeCheckoutSession): Promise<void> {
+  // Only fulfil once the funds are actually confirmed. Delayed payment methods
+  // emit this event with payment_status other than 'paid'.
+  if (session.payment_status !== 'paid') {
+    return
+  }
+
+  // TODO: fulfil the order for session.id here. Make it idempotent: Stripe
+  // retries deliveries, so key the work on session.id.
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook secret is not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  // The signature covers the exact raw bytes, so read the body as a string
+  // without parsing it first.
+  const rawBody = await readRawBody(event, 'utf8')
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty request body' })
+  }
+
+  if (!verifyStripeSignature(rawBody, signature, stripeWebhookSecret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid Stripe signature' })
+  }
+
+  let stripeEvent: StripeEvent
+  try {
+    stripeEvent = JSON.parse(rawBody) as StripeEvent
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'Malformed JSON payload' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed':
+      await handleCheckoutSessionCompleted(stripeEvent.data.object as StripeCheckoutSession)
+      break
+    default:
+      // Acknowledge events we do not handle so Stripe does not retry them.
+      break
+  }
+
+  return { received: true }
+})
+
+=== FILE: nuxt.config.ts ===
+const isDev = process.env.NODE_ENV === 'development'
+
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+  runtimeConfig: {
+    // Server-only. Override with NUXT_STRIPE_WEBHOOK_SECRET.
+    stripeWebhookSecret: '',
+  },
+  routeRules: {
+    // Stripe posts without a CSRF token and sends a raw body that must not be
+    // consumed by the XSS body validator.
+    '/api/webhooks/**': {
+      security: {
+        csrf: false,
+        xssValidator: false,
+      },
+    },
+  },
+  security: {
+    rateLimiter: false,
+    headers: isDev
+      ? { contentSecurityPolicy: false }
+      : {
+          contentSecurityPolicy: {
+            'default-src': ["'self'"],
+            'connect-src': ["'self'"],
+            'img-src': ["'self'", 'data:'],
+          },
+        },
+    csrf: true,
+  },
+})
+
+=== END ===

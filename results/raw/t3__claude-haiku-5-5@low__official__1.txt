@@ -1,0 +1,113 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { z } from 'zod'
+import { and, eq, ne } from 'drizzle-orm'
+import { users } from '../../db/schema'
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(255).optional(),
+  })
+  .refine(data => data.name !== undefined || data.email !== undefined, {
+    message: 'At least one of name or email is required',
+  })
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing user id' })
+  }
+
+  // Users may only update their own profile.
+  if (session.user.id !== id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, body => bodySchema.parse(body))
+
+  const db = useDB()
+
+  if (body.email !== undefined) {
+    const [conflict] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.email, body.email), ne(users.id, id)))
+      .limit(1)
+
+    if (conflict) {
+      throw createError({ statusCode: 409, statusMessage: 'Email already in use' })
+    }
+  }
+
+  const values: { name?: string, email?: string } = {}
+  if (body.name !== undefined) values.name = body.name
+  if (body.email !== undefined) values.email = body.email
+
+  const [updated] = await db
+    .update(users)
+    .set(values)
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+```
+
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+// Stats are cached per user for 60 seconds. Authentication runs on every
+// request, so the cache can never serve data to a caller without a session.
+const getCachedUserStats = defineCachedFunction(
+  async (userId: string) => computeUserStats(userId),
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    getKey: (userId: string) => userId,
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+
+  const stats = await getCachedUserStats(session.user.id)
+
+  setHeader(event, 'Cache-Control', 'private, max-age=60')
+
+  return stats
+})
+```
+
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+
+  modules: [
+    '@nuxt/ui',
+    'nuxt-auth-utils',
+  ],
+
+  runtimeConfig: {
+    public: {
+      // Available in both server and browser code.
+      // Override with the NUXT_PUBLIC_API_BASE environment variable.
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+```
+
+=== END ===

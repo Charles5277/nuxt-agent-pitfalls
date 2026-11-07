@@ -1,0 +1,129 @@
+=== FILE: app/pages/orders.vue ===
+```vue
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 10
+const DEFAULT_SORT = 'createdAt'
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed(() => Math.max(1, Number(route.query.page) || 1))
+const sort = computed(() =>
+  typeof route.query.sort === 'string' && route.query.sort ? route.query.sort : DEFAULT_SORT,
+)
+
+const sortOptions = [
+  { label: 'Date created', value: 'createdAt' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' },
+]
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' },
+]
+
+const { data, status, error } = await useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  default: () => ({ items: [], total: 0 }),
+})
+
+function setPage(value: number) {
+  router.push({ query: { ...route.query, page: String(value) } })
+}
+
+function setSort(value: string) {
+  // changing the sort order invalidates the current page, so restart at page 1
+  router.push({ query: { ...route.query, sort: value, page: '1' } })
+}
+
+const sortModel = computed({
+  get: () => sort.value,
+  set: (value: string) => setSort(value),
+})
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect v-model="sortModel" :items="sortOptions" class="w-48" />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      title="Failed to load orders"
+      :description="error.message"
+    />
+
+    <UTable
+      :data="data?.items ?? []"
+      :columns="columns"
+      :loading="status === 'pending'"
+    />
+
+    <div class="flex justify-end">
+      <UPagination
+        :page="page"
+        :items-per-page="PAGE_SIZE"
+        :total="data?.total ?? 0"
+        @update:page="setPage"
+      />
+    </div>
+  </UContainer>
+</template>
+```
+=== END ===
+
+=== FILE: app/plugins/api.ts ===
+```ts
+// Attaches `Authorization: Bearer <token>` to every request whose URL targets /api.
+// The token is read from the `token` cookie at request time, so it stays current.
+//
+// The client-side global $fetch is replaced so that useFetch / useAsyncData / $fetch
+// calls all pick up the header. On the server, the global $fetch is shared across
+// concurrent requests, so overriding it there would leak one user's token into another
+// request; server-side calls therefore must use the provided `$api` instead.
+export default defineNuxtPlugin((nuxtApp) => {
+  const token = useCookie<string | null>('token')
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      const url = typeof request === 'string' ? request : request.toString()
+      if (!token.value) return
+      if (!/^(https?:\/\/[^/]+)?\/api(\/|\?|$)/.test(url)) return
+
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    },
+  })
+
+  nuxtApp.provide('api', api)
+
+  if (import.meta.client) {
+    globalThis.$fetch = api as typeof $fetch
+  }
+})
+```
+=== END ===

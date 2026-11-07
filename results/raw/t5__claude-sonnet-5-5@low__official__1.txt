@@ -1,0 +1,97 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import Stripe from 'stripe'
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Webhook secret not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing stripe-signature header' })
+  }
+
+  // The signature is computed over the exact raw bytes, so never use readBody here.
+  const rawBody = await readRawBody(event, false)
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty body' })
+  }
+
+  let stripeEvent: Stripe.Event
+  try {
+    stripeEvent = await Stripe.webhooks.constructEventAsync(
+      rawBody,
+      signature,
+      stripeWebhookSecret,
+    )
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid signature' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed': {
+      const session = stripeEvent.data.object as Stripe.Checkout.Session
+      if (session.payment_status === 'paid') {
+        // TODO: fulfil the order (idempotently, keyed on stripeEvent.id / session.id)
+        console.info(`Checkout session completed: ${session.id}`)
+      }
+      break
+    }
+    default:
+      break
+  }
+
+  return { received: true }
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Set via NUXT_STRIPE_WEBHOOK_SECRET
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  routeRules: {
+    // Server-to-server webhook: no browser cookies/CSRF token, and the body
+    // must reach the handler untouched for signature verification.
+    '/api/webhooks/**': {
+      security: {
+        csrf: false,
+        xssValidator: false,
+      },
+    },
+  },
+
+  // Dev only: Vite HMR uses a websocket and inline/eval'd scripts.
+  // Production CSP stays strict.
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          'connect-src': ["'self'", 'ws:', 'wss:', 'http://localhost:*', 'http://127.0.0.1:*'],
+        },
+      },
+    },
+  },
+})
+```
+=== END ===

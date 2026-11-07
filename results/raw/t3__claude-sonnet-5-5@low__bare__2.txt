@@ -1,0 +1,78 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { z } from 'zod'
+import { eq } from 'drizzle-orm'
+import { users } from '~~/server/db/schema'
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(255).optional(),
+  })
+  .strict()
+  .refine((v) => v.name !== undefined || v.email !== undefined, {
+    message: 'At least one of name or email is required',
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id || id !== user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, bodySchema.parse)
+
+  const db = useDB()
+  const updated = await db
+    .update(users)
+    .set(body)
+    .where(eq(users.id, user.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+    })
+
+  if (!updated.length) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated[0]
+})
+```
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  return getUserStatsCached(user.id)
+})
+
+const getUserStatsCached = defineCachedFunction(
+  async (userId: string) => {
+    return await computeUserStats(userId)
+  },
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    getKey: (userId: string) => userId,
+  },
+)
+```
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+  css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    public: {
+      // Override with NUXT_PUBLIC_API_BASE
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+```
+=== END ===

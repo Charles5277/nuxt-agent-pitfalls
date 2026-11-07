@@ -1,0 +1,1 @@
+{"shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'nuxt.config.ts' -g 'package.json' -g '*lock*'\"": 1}

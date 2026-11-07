@@ -174,7 +174,9 @@ if __name__ == '__main__':
             tgt = agg if k.startswith('P_') else aggB
             tgt[(r['arm'], r['cond'])][0] += int(bool(v)); tgt[(r['arm'], r['cond'])][1] += 1
             if k.startswith('P_'): per[(r['task'], k, r['arm'], r['cond'])][0] += int(bool(v)); per[(r['task'], k, r['arm'], r['cond'])][1] += 1
-    arms = ['claude-opus-5-5@medium', 'claude-sonnet-5-5@high', 'claude-haiku-5-5@xhigh', 'gpt-6.1-sol@high']; conds = ['bare', 'official']
+    first = ['claude-opus-5-5@medium', 'claude-sonnet-5-5@high', 'claude-haiku-5-5@xhigh', 'gpt-6.1-sol@high']
+    seen = {r['arm'] for r in rows}  # any arm id found in the result file names, our four first
+    arms = [a for a in first if a in seen] + sorted(seen - set(first)); conds = ['bare', 'official']
     print('== pitfall checks passed (P_*), by arm x cond')
     for a in arms: print(a.ljust(26), '  '.join(f"{c}:{agg[(a,c)][0]}/{agg[(a,c)][1]}" for c in conds), ' | basic', '  '.join(f"{c}:{aggB[(a,c)][0]}/{aggB[(a,c)][1]}" for c in conds))
     print('== per check (bare / official)')

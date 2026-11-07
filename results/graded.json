@@ -1,6 +1,102 @@
 [
  {
   "task": "t1",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
   "arm": "claude-haiku-5-5@xhigh",
   "cond": "bare",
   "rep": "1",
@@ -104,6 +200,102 @@
  },
  {
   "task": "t1",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
   "arm": "claude-opus-5-5@medium",
   "cond": "bare",
   "rep": "1",
@@ -285,6 +477,102 @@
  {
   "task": "t1",
   "arm": "claude-sonnet-5-5@high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "claude-sonnet-5-5@low",
   "cond": "official",
   "rep": "3",
   "nfiles": 1,
@@ -405,6 +693,198 @@
   }
  },
  {
+  "task": "t1",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat ~/.cache/nuxt-agent-pitfalls/.sandbox/codex-official/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat ~/.cache/nuxt-agent-pitfalls/.sandbox/codex-official/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat ~/.cache/nuxt-agent-pitfalls/.sandbox/codex-official/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
   "task": "t2",
   "arm": "claude-haiku-5-5@xhigh",
   "cond": "bare",
@@ -512,6 +992,96 @@
  },
  {
   "task": "t2",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": false,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
   "arm": "claude-opus-5-5@medium",
   "cond": "bare",
   "rep": "1",
@@ -678,6 +1248,96 @@
  {
   "task": "t2",
   "arm": "claude-sonnet-5-5@high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "claude-sonnet-5-5@low",
   "cond": "official",
   "rep": "3",
   "nfiles": 2,
@@ -797,6 +1457,196 @@
   }
  },
  {
+  "task": "t2",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat ~/.cache/nuxt-agent-pitfalls/.sandbox/codex-official/skills/nuxt-ui/SKILL.md'": 1,
+   "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*orders*' -g 'api.ts'\"": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat ~/.cache/nuxt-agent-pitfalls/.sandbox/codex-official/skills/nuxt-ui/SKILL.md'": 1,
+   "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*orders*' -g '*api*'\"": 1,
+   "nuxt-ui:get-component": 3
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat ~/.cache/nuxt-agent-pitfalls/.sandbox/codex-official/skills/nuxt-ui/SKILL.md'": 1,
+   "nuxt-ui:get-component": 3
+  }
+ },
+ {
+  "task": "t3",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
   "task": "t3",
   "arm": "claude-haiku-5-5@xhigh",
   "cond": "bare",
@@ -890,6 +1740,96 @@
  },
  {
   "task": "t3",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
   "arm": "claude-opus-5-5@medium",
   "cond": "bare",
   "rep": "1",
@@ -1056,6 +1996,96 @@
  {
   "task": "t3",
   "arm": "claude-sonnet-5-5@high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "claude-sonnet-5-5@low",
   "cond": "official",
   "rep": "3",
   "nfiles": 3,
@@ -1166,6 +2196,183 @@
   }
  },
  {
+  "task": "t3",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxthub__get-page": 2
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": false,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
   "task": "t4",
   "arm": "claude-haiku-5-5@xhigh",
   "cond": "bare",
@@ -1262,6 +2469,92 @@
    "mcp__nuxthub__get-page": 6,
    "mcp__nuxt__get-deploy-provider": 1
   }
+ },
+ {
+  "task": "t4",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__get-page": 2
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
  },
  {
   "task": "t4",
@@ -1451,6 +2744,90 @@
  },
  {
   "task": "t4",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": false,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
   "arm": "gpt-6.1-sol@high",
   "cond": "bare",
   "rep": "1",
@@ -1546,6 +2923,178 @@
   }
  },
  {
+  "task": "t4",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat ~/.cache/nuxt-agent-pitfalls/.sandbox/codex-official/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc \"rg --files -g '*nuxthub*' -g 'package.json' -g 'nuxt.config.*' -g 'AGENTS.md'\"": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": false,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-haiku-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
   "task": "t5",
   "arm": "claude-haiku-5-5@xhigh",
   "cond": "bare",
@@ -1638,6 +3187,90 @@
    "mcp__nuxt__get-module": 2,
    "mcp__nuxt__list-modules": 1
   }
+ },
+ {
+  "task": "t5",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-opus-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-opus-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
  },
  {
   "task": "t5",
@@ -1814,6 +3447,90 @@
  },
  {
   "task": "t5",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "claude-sonnet-5-5@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
   "arm": "gpt-6.1-sol@high",
   "cond": "bare",
   "rep": "1",
@@ -1908,6 +3625,100 @@
   "tools": {
    "shell:sh -lc \"pwd && rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*stripe*' -g '*lock*' -g 'SKILL.md' .\"": 1,
    "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'ls -a'": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc \"rg --files -g 'package.json' -g 'nuxt.config.ts' -g 'AGENTS.md' -g '*lock*'\"": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'ls -a'": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'nuxt.config.ts' -g 'package.json' -g '*lock*'\"": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt-6.1-sol@low",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc \"pwd && rg --files -g 'package.json' -g 'nuxt.config.ts' -g 'AGENTS.md' -g '*stripe*'\"": 1
   }
  }
 ]

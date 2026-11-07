@@ -1,0 +1,75 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const profileSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  email: z.string().trim().email().max(254).optional(),
+}).strict().refine(
+  body => body.name !== undefined || body.email !== undefined,
+  { message: 'Provide a name or email to update' },
+)
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing user ID' })
+  }
+
+  if (id !== session.user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, profileSchema.parse)
+
+  const [user] = await useDB()
+    .update(users)
+    .set({
+      ...(body.name !== undefined ? { name: body.name } : {}),
+      ...(body.email !== undefined ? { email: body.email } : {}),
+    })
+    .where(eq(users.id, session.user.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+    })
+
+  if (!user) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return user
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+const getCachedUserStats = defineCachedFunction(
+  async (userId: string) => computeUserStats(userId),
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    swr: false,
+    getKey: (userId: string) => userId,
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+
+  setResponseHeader(event, 'Cache-Control', 'private, no-store')
+
+  return getCachedUserStats(session.user.id)
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  runtimeConfig: {
+    public: {
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+=== END ===

@@ -1,0 +1,92 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { z } from 'zod'
+import { eq } from 'drizzle-orm'
+import { users } from '../../db/schema'
+
+const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(254).optional(),
+  })
+  .strict()
+  .refine(value => value.name !== undefined || value.email !== undefined, {
+    message: 'At least one field (name or email) is required',
+  })
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id || id !== session.user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const input = await readValidatedBody(event, (body) => {
+    const result = updateProfileSchema.safeParse(body)
+    if (!result.success) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid request body',
+        data: result.error.flatten(),
+      })
+    }
+    return result.data
+  })
+
+  const db = useDB()
+
+  const [updated] = await db
+    .update(users)
+    .set(input)
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+```
+=== END ===
+
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+const getCachedUserStats = defineCachedFunction(
+  (userId: string) => computeUserStats(userId),
+  {
+    name: 'user-dashboard-stats',
+    group: 'api',
+    maxAge: 60,
+    getKey: (userId: string) => userId,
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+  const stats = await getCachedUserStats(session.user.id)
+  return { stats }
+})
+```
+=== END ===
+
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+  runtimeConfig: {
+    public: {
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+```
+=== END ===

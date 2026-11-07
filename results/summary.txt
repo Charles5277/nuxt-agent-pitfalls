@@ -3,25 +3,33 @@ claude-opus-5-5@medium     bare:42/45  official:43/45  | basic bare:27/27  offic
 claude-sonnet-5-5@high     bare:38/45  official:39/45  | basic bare:26/27  official:27/27
 claude-haiku-5-5@xhigh     bare:40/45  official:39/45  | basic bare:27/27  official:27/27
 gpt-6.1-sol@high           bare:42/45  official:45/45  | basic bare:26/27  official:27/27
+claude-haiku-5-5@low       bare:38/45  official:40/45  | basic bare:27/27  official:27/27
+claude-opus-5-5@low        bare:42/45  official:43/45  | basic bare:26/27  official:27/27
+claude-sonnet-5-5@low      bare:40/45  official:38/45  | basic bare:27/27  official:27/27
+gpt-6.1-sol@low            bare:43/45  official:44/45  | basic bare:27/27  official:27/27
 == per check (bare / official)
-check                                         claude-opus-5-5@medium        claude-sonnet-5-5@high        claude-haiku-5-5@xhigh              gpt-6.1-sol@high
-t1 P_body_in_#body                                           3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t1 P_no_class_width                                          3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t1 P_no_stray_children                                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t1 P_width_via_ui                                            3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t2 P_key_excludes_page_sort                                  3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t2 P_no_global_$fetch_override                               0/3 2/3                       0/3 0/3                       1/3 0/3                       0/3 3/3
-t2 P_no_toplevel_await_$fetch                                3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t3 P_apiBase_public                                          3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t3 P_authz_self_only                                         3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t3 P_cache_key_has_user                                      3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t3 P_no_mass_assignment                                      3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t4 P_d1_driver_not_unconditional                             3/3 2/3                       0/3 0/3                       0/3 0/3                       3/3 3/3
-t4 P_subquery_alias_unique                                   3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t5 P_hmr_ws_dev_only                                         3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
-t5 P_webhook_csrf_exempt                                     3/3 3/3                       2/3 3/3                       3/3 3/3                       3/3 3/3
+check                                         claude-opus-5-5@medium        claude-sonnet-5-5@high        claude-haiku-5-5@xhigh              gpt-6.1-sol@high          claude-haiku-5-5@low           claude-opus-5-5@low         claude-sonnet-5-5@low               gpt-6.1-sol@low
+t1 P_body_in_#body                                           3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t1 P_no_class_width                                          3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t1 P_no_stray_children                                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t1 P_width_via_ui                                            3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t2 P_key_excludes_page_sort                                  3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t2 P_no_global_$fetch_override                               0/3 2/3                       0/3 0/3                       1/3 0/3                       0/3 3/3                       0/3 1/3                       1/3 1/3                       0/3 0/3                       1/3 2/3
+t2 P_no_toplevel_await_$fetch                                3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t3 P_apiBase_public                                          3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t3 P_authz_self_only                                         3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t3 P_cache_key_has_user                                      3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t3 P_no_mass_assignment                                      3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t4 P_d1_driver_not_unconditional                             3/3 2/3                       0/3 0/3                       0/3 0/3                       3/3 3/3                       0/3 1/3                       2/3 3/3                       1/3 0/3                       3/3 3/3
+t4 P_subquery_alias_unique                                   3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 2/3                       3/3 3/3                       3/3 2/3                       3/3 3/3
+t5 P_hmr_ws_dev_only                                         3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       2/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
+t5 P_webhook_csrf_exempt                                     3/3 3/3                       2/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3                       3/3 3/3
 == tool use in official cond (runs using any MCP / skill)
 claude-opus-5-5@medium     runs=15 mcp_used=5 skill_used=0
 claude-sonnet-5-5@high     runs=15 mcp_used=3 skill_used=0
 claude-haiku-5-5@xhigh     runs=15 mcp_used=12 skill_used=1
 gpt-6.1-sol@high           runs=15 mcp_used=5 skill_used=10
+claude-haiku-5-5@low       runs=15 mcp_used=1 skill_used=0
+claude-opus-5-5@low        runs=15 mcp_used=1 skill_used=0
+claude-sonnet-5-5@low      runs=15 mcp_used=0 skill_used=0
+gpt-6.1-sol@low            runs=15 mcp_used=2 skill_used=7

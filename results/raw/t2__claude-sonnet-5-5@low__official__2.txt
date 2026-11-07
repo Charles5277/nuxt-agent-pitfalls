@@ -1,0 +1,135 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: number | string
+  [key: string]: unknown
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 10
+
+const route = useRoute()
+const router = useRouter()
+
+const sortOptions = [
+  { label: 'Newest', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Status', value: 'status' },
+  { label: 'ID', value: 'id' }
+]
+
+const page = computed({
+  get: () => {
+    const n = Number(route.query.page)
+    return Number.isInteger(n) && n > 0 ? n : 1
+  },
+  set: (value: number) => {
+    router.push({ query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed({
+  get: () => {
+    const s = route.query.sort
+    return typeof s === 'string' && sortOptions.some(o => o.value === s)
+      ? s
+      : sortOptions[0]!.value
+  },
+  set: (value: string) => {
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  watch: [page, sort]
+})
+
+const items = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' }
+]
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-xl font-semibold">
+        Orders
+      </h1>
+      <USelect
+        v-model="sort"
+        :items="sortOptions"
+        class="w-48"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+      :actions="[{ label: 'Retry', onClick: () => refresh() }]"
+    />
+
+    <UTable
+      :data="items"
+      :columns="columns"
+      :loading="status === 'pending'"
+    />
+
+    <div class="flex justify-center">
+      <UPagination
+        v-model:page="page"
+        :total="total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  // Client only: replacing the global $fetch on the server would be shared
+  // across concurrent requests and could leak one user's token to another.
+  if (import.meta.server) return
+
+  const token = useCookie<string | null>('token')
+
+  const isApiRequest = (request: RequestInfo | URL): boolean => {
+    const url = typeof request === 'string'
+      ? request
+      : request instanceof URL
+        ? request.href
+        : request.url
+    try {
+      const parsed = new URL(url, window.location.origin)
+      return parsed.origin === window.location.origin
+        && (parsed.pathname === '/api' || parsed.pathname.startsWith('/api/'))
+    } catch {
+      return false
+    }
+  }
+
+  globalThis.$fetch = $fetch.create({
+    onRequest({ request, options }) {
+      if (!token.value || !isApiRequest(request)) return
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    }
+  }) as typeof $fetch
+})
+=== END ===

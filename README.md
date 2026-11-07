@@ -85,6 +85,29 @@ for t in t1 t2 t3 t4 t5; do for a in claude-opus-5-5@medium claude-sonnet-5-5@hi
 python3 grader/grade.py results/raw results
 ```
 
+## Effort: low
+
+Same five tasks, same sandbox, same grader, same 3 runs per cell, but every model at `low` effort (120 more runs, `results/raw/*@low__*`). The main tables above are unchanged. Scores are pitfall checks passed out of 45 (`bare` / `official`):
+
+| Model | Original effort | Original score | `low` score |
+| --- | --- | --- | --- |
+| Opus 5.5 | medium | 42 · 43 | 42 · 43 |
+| Sonnet 5.5 | high | 38 · 39 | 40 · 38 |
+| Haiku 5.5 | xhigh | 40 · 39 | 38 · 40 |
+| GPT-6.1-Sol | high | 42 · 45 | 43 · 44 |
+
+What the numbers support:
+
+- Dropping to `low` does not bring the pitfalls back wholesale. Totals stay within 2 checks of the original in every cell, and the same two pitfalls dominate the misses at both efforts: the `globalThis.$fetch` override (2c: 2/12 bare passes at `low` across the four models, 1/12 originally) and the unconditional `hub.db.driver: 'd1'` (task 4).
+- Per-check differences are all one or two runs out of 3: GPT `low` passes 2c in 1 bare run (originally 0) and 2/3 in `official` (originally 3/3); Opus `low` passes 2c in 1 bare run (originally 0) and the D1 check in 2/3 bare runs (originally 3/3, but 3/3 with `official` where it was 2/3 before); Haiku `low` misses the HMR-websocket check once in bare and the subquery-alias check once in `official`; Sonnet `low` misses the subquery-alias check once in `official` and passes the D1 check once in bare (originally never). With n=3 none of these separates `low` from the original setting.
+- In `official`, `low` agents reach for the tools less: runs using any MCP tool were 1/15 (Haiku), 1/15 (Opus), 0/15 (Sonnet), 2/15 (GPT) versus 12, 5, 3 and 5 at the original efforts. GPT still opened the `nuxt-ui` skill in 7/15 runs (10/15 originally).
+
+Limits: n=3 per cell, so one run moves a cell by 33 points and a total by 2 points; the comparison shows no large effect of effort here, not that there is none. Grading is static and the runs were done in one batch on one machine.
+
+## Run it on another model
+
+`runner/run.sh` accepts any model id and effort, so you can repeat this with a cheaper model: see [`REUSE.md`](REUSE.md).
+
 ## Context
 
 Which harnesses and models we used over the past year: [`TIMELINE.md`](TIMELINE.md).

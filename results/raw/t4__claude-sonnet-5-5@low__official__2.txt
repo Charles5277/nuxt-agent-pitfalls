@@ -1,0 +1,67 @@
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  devtools: { enabled: true },
+  modules: ['@nuxthub/core', '@nuxt/ui'],
+  css: ['~/assets/css/main.css'],
+  nitro: {
+    preset: 'cloudflare_module',
+    cloudflare: {
+      deployConfig: true,
+      nodeCompat: true
+    }
+  },
+  hub: {
+    db: {
+      dialect: 'sqlite',
+      driver: 'd1',
+      connection: {
+        databaseId: '0f1e2d3c-aaaa-bbbb-cccc-123456789abc'
+      }
+    }
+  }
+})
+```
+=== FILE: app/assets/css/main.css ===
+```css
+@import "tailwindcss";
+@import "@nuxt/ui";
+```
+=== FILE: server/api/stats.get.ts ===
+```ts
+import { db, schema } from 'hub:db'
+import { count, eq, sql } from 'drizzle-orm'
+
+export default defineEventHandler(async () => {
+  const memberCounts = db
+    .select({
+      projectId: schema.members.projectId,
+      memberCount: count().as('member_count')
+    })
+    .from(schema.members)
+    .groupBy(schema.members.projectId)
+    .as('member_counts')
+
+  const taskCounts = db
+    .select({
+      projectId: schema.tasks.projectId,
+      taskCount: count().as('task_count')
+    })
+    .from(schema.tasks)
+    .groupBy(schema.tasks.projectId)
+    .as('task_counts')
+
+  return await db
+    .select({
+      id: schema.projects.id,
+      name: schema.projects.name,
+      memberCount: sql<number>`coalesce(${memberCounts.memberCount}, 0)`.mapWith(Number),
+      taskCount: sql<number>`coalesce(${taskCounts.taskCount}, 0)`.mapWith(Number)
+    })
+    .from(schema.projects)
+    .leftJoin(memberCounts, eq(memberCounts.projectId, schema.projects.id))
+    .leftJoin(taskCounts, eq(taskCounts.projectId, schema.projects.id))
+})
+```
+=== END ===

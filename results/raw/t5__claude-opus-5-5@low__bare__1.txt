@@ -1,0 +1,125 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+import Stripe from 'stripe'
+
+let stripe: Stripe | undefined
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    const config = useRuntimeConfig()
+    stripe = new Stripe(config.stripeSecretKey || 'sk_unused_for_webhook_verification')
+  }
+  return stripe
+}
+
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event)
+  const webhookSecret = config.stripeWebhookSecret as string | undefined
+
+  if (!webhookSecret) {
+    console.error('[stripe-webhook] runtimeConfig.stripeWebhookSecret is not set')
+    throw createError({ statusCode: 500, statusMessage: 'Webhook not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  // Signature must be verified against the exact raw bytes Stripe sent.
+  const rawBody = await readRawBody(event, false)
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty body' })
+  }
+
+  let stripeEvent: Stripe.Event
+  try {
+    stripeEvent = await getStripe().webhooks.constructEventAsync(rawBody, signature, webhookSecret)
+  }
+  catch (err) {
+    console.warn('[stripe-webhook] signature verification failed:', (err as Error).message)
+    throw createError({ statusCode: 400, statusMessage: 'Invalid signature' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed': {
+      const session = stripeEvent.data.object as Stripe.Checkout.Session
+      await handleCheckoutSessionCompleted(stripeEvent.id, session)
+      break
+    }
+    default:
+      // Acknowledge unhandled event types so Stripe does not retry them.
+      break
+  }
+
+  return { received: true }
+})
+
+async function handleCheckoutSessionCompleted(eventId: string, session: Stripe.Checkout.Session) {
+  // Async payment methods may complete the session before funds settle;
+  // those are confirmed later via checkout.session.async_payment_succeeded.
+  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+    console.info(`[stripe-webhook] session ${session.id} completed with payment_status=${session.payment_status}; awaiting async payment`)
+    return
+  }
+
+  // Stripe may deliver the same event more than once: make fulfillment idempotent
+  // (e.g. upsert keyed on eventId / session.id in your database).
+  const fulfillment = {
+    eventId,
+    sessionId: session.id,
+    customerId: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null,
+    customerEmail: session.customer_details?.email ?? session.customer_email ?? null,
+    clientReferenceId: session.client_reference_id ?? null,
+    amountTotal: session.amount_total,
+    currency: session.currency,
+    metadata: session.metadata ?? {},
+  }
+
+  console.info('[stripe-webhook] fulfilling checkout session', fulfillment.sessionId)
+  // TODO: persist order / grant access using `fulfillment`.
+}
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    stripeSecretKey: '', // NUXT_STRIPE_SECRET_KEY
+    stripeWebhookSecret: '', // NUXT_STRIPE_WEBHOOK_SECRET
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  routeRules: {
+    // Stripe cannot send a CSRF token; authenticity is enforced by signature verification.
+    // Body must reach the handler untouched for signature verification.
+    '/api/webhooks/stripe': {
+      csurf: false,
+      security: {
+        xssValidator: false,
+        requestSizeLimiter: false,
+      },
+    },
+  },
+
+  // Dev-only relaxation: allow the Vite HMR websocket. Production CSP is unchanged.
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          'connect-src': ["'self'", 'ws:', 'wss:'],
+        },
+      },
+    },
+  },
+})
+=== END ===

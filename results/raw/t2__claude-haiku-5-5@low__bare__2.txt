@@ -1,0 +1,104 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 10
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed<number>({
+  get: () => {
+    const p = Number(route.query.page)
+    return Number.isInteger(p) && p > 0 ? p : 1
+  },
+  set: (value: number) => {
+    router.push({ query: { ...route.query, page: String(value) } })
+  },
+})
+
+const sort = computed<string>({
+  get: () => (typeof route.query.sort === 'string' ? route.query.sort : 'createdAt'),
+  set: (value: string) => {
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  },
+})
+
+const sortItems = [
+  { label: 'Created (newest)', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+]
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' },
+]
+
+const { data, status } = await useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  default: () => ({ items: [], total: 0 }),
+})
+
+const rows = computed<Order[]>(() => data.value?.items ?? [])
+const total = computed<number>(() => data.value?.total ?? 0)
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect v-model="sort" :items="sortItems" class="w-56" />
+    </div>
+
+    <UTable :data="rows" :columns="columns" :loading="status === 'pending'" />
+
+    <div class="flex justify-end">
+      <UPagination v-model:page="page" :total="total" :items-per-page="PAGE_SIZE" />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  const baseFetch = globalThis.$fetch
+
+  const apiFetch = baseFetch.create({
+    onRequest({ request, options }) {
+      const url = typeof request === 'string' ? request : request.toString()
+      const isApi = url.startsWith('/api') || /^https?:\/\/[^/]+\/api(\/|$|\?)/.test(url)
+      if (!isApi || !token.value) return
+
+      const headers = new Headers(options.headers)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    },
+  })
+
+  globalThis.$fetch = apiFetch
+
+  return {
+    provide: {
+      api: apiFetch,
+    },
+  }
+})
+=== END ===

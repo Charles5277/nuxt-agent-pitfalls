@@ -1,0 +1,159 @@
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      const url = typeof request === 'string' ? request : request.url
+      const isApi = url.startsWith('/api') || /^https?:\/\/[^/]+\/api(\/|$|\?)/.test(url)
+      if (!isApi || !token.value) return
+
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    },
+  })
+
+  return {
+    provide: {
+      api,
+    },
+  }
+})
+=== FILE: app/composables/useApi.ts ===
+import type { UseFetchOptions } from 'nuxt/app'
+
+export function useApi<T>(
+  url: string | Request | Ref<string | Request> | (() => string | Request),
+  options: UseFetchOptions<T> = {},
+) {
+  return useFetch(url, {
+    ...options,
+    $fetch: useNuxtApp().$api as typeof $fetch,
+  })
+}
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  customer: string
+  total: number
+  status: string
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+
+const sortOptions = [
+  { label: 'Newest', value: '-createdAt' },
+  { label: 'Oldest', value: 'createdAt' },
+  { label: 'Total (high → low)', value: '-total' },
+  { label: 'Total (low → high)', value: 'total' },
+  { label: 'Customer', value: 'customer' },
+]
+const DEFAULT_SORT = sortOptions[0]!.value
+
+const route = useRoute()
+const router = useRouter()
+
+function firstString(v: unknown): string | undefined {
+  if (Array.isArray(v)) v = v[0]
+  return typeof v === 'string' && v.length ? v : undefined
+}
+
+const page = computed<number>({
+  get() {
+    const n = Number.parseInt(firstString(route.query.page) ?? '1', 10)
+    return Number.isFinite(n) && n > 0 ? n : 1
+  },
+  set(value) {
+    router.push({ query: { ...route.query, page: value > 1 ? String(value) : undefined } })
+  },
+})
+
+const sort = computed<string>({
+  get() {
+    const s = firstString(route.query.sort)
+    return s && sortOptions.some(o => o.value === s) ? s : DEFAULT_SORT
+  },
+  set(value) {
+    router.push({
+      query: {
+        ...route.query,
+        sort: value === DEFAULT_SORT ? undefined : value,
+        page: undefined,
+      },
+    })
+  },
+})
+
+const { data, status, error } = await useApi<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  default: () => ({ items: [], total: 0 }),
+})
+
+const items = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+
+const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' })
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currency.format(Number(row.getValue('total'))),
+  },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => new Date(String(row.getValue('createdAt'))).toLocaleString(),
+  },
+]
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect
+        v-model="sort"
+        :items="sortOptions"
+        value-key="value"
+        class="w-56"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+    />
+
+    <UTable
+      :data="items"
+      :columns="columns"
+      :loading="status === 'pending'"
+    />
+
+    <div class="flex justify-end">
+      <UPagination
+        v-model:page="page"
+        :total="total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
+</template>
+=== END ===

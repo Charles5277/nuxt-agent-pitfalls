@@ -1,0 +1,93 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(255).optional(),
+  })
+  .strict()
+  .refine((data) => data.name !== undefined || data.email !== undefined, {
+    message: 'At least one of name or email must be provided',
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing user id' })
+  }
+
+  if (user.id !== id) {
+    throw createError({ statusCode: 403, statusMessage: 'You can only update your own profile' })
+  }
+
+  const body = await readValidatedBody(event, (input) => {
+    const result = updateProfileSchema.safeParse(input)
+    if (!result.success) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid request body',
+        data: result.error.flatten(),
+      })
+    }
+    return result.data
+  })
+
+  const db = useDB()
+
+  const [updated] = await db
+    .update(users)
+    .set({
+      ...(body.name !== undefined && { name: body.name }),
+      ...(body.email !== undefined && { email: body.email }),
+    })
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+=== END ===
+
+=== FILE: server/api/me/dashboard.get.ts ===
+export default defineCachedEventHandler(
+  async (event) => {
+    const { user } = await requireUserSession(event)
+    return await computeUserStats(user.id)
+  },
+  {
+    name: 'me-dashboard',
+    maxAge: 60,
+    getKey: async (event) => {
+      const { user } = await requireUserSession(event)
+      return user.id
+    },
+  },
+)
+=== END ===
+
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  runtimeConfig: {
+    public: {
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+=== END ===

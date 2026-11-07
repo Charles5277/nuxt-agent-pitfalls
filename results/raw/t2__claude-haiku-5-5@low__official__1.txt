@@ -1,0 +1,158 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed({
+  get: () => {
+    const n = Number(route.query.page)
+    return Number.isInteger(n) && n > 0 ? n : 1
+  },
+  set: (value: number) => {
+    router.push({ query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sortItems = [
+  { label: 'Newest', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' }
+]
+
+const sort = computed({
+  get: () => {
+    const value = route.query.sort
+    return typeof value === 'string' && sortItems.some(item => item.value === value)
+      ? value
+      : 'createdAt'
+  },
+  set: (value: string) => {
+    // changing the sort order restarts paging from the first page
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { data, status, error } = await useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({
+    page: page.value,
+    sort: sort.value
+  })),
+  default: () => ({ items: [], total: 0 })
+})
+
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currency.format(row.original.total)
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString('en-US')
+  }
+]
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">
+        Orders
+      </h1>
+      <USelect
+        v-model="sort"
+        :items="sortItems"
+        value-key="value"
+        class="w-48"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+    />
+
+    <UTable
+      :data="data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+    />
+
+    <div class="flex justify-end">
+      <UPagination
+        v-model:page="page"
+        :total="data.total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  // Client only: on the server, plugins run per request, so swapping the
+  // global $fetch here would stack wrappers and leak tokens across requests.
+  if (import.meta.server) return
+
+  const token = useCookie<string | null>('token')
+
+  const isApiRequest = (url: string): boolean => {
+    let parsed: URL
+    try {
+      parsed = new URL(url, location.origin)
+    } catch {
+      return false
+    }
+    // Only same-origin requests; never send the token to third-party hosts.
+    if (parsed.origin !== location.origin) return false
+    return parsed.pathname === '/api' || parsed.pathname.startsWith('/api/')
+  }
+
+  const baseFetch = globalThis.$fetch
+
+  // useFetch/useAsyncData and direct $fetch calls both resolve the global
+  // $fetch at call time, so this covers every request that hits /api.
+  ;(globalThis as unknown as { $fetch: typeof baseFetch }).$fetch = baseFetch.create({
+    onRequest({ request, options }) {
+      if (!token.value) return
+
+      const url = typeof request === 'string'
+        ? request
+        : request instanceof Request
+          ? request.url
+          : String(request)
+
+      if (!isApiRequest(url)) return
+
+      options.headers = new Headers(options.headers)
+      options.headers.set('Authorization', `Bearer ${token.value}`)
+    }
+  })
+})
+=== END ===

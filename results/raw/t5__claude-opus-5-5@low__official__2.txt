@@ -1,0 +1,118 @@
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Server-only. Override via NUXT_STRIPE_SECRET_KEY / NUXT_STRIPE_WEBHOOK_SECRET
+    stripeSecretKey: '',
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  // Dev-only: allow the Vite HMR websocket. Production CSP stays unchanged.
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          'connect-src': ["'self'", 'ws://localhost:*', 'wss://localhost:*', 'ws://127.0.0.1:*', 'wss://127.0.0.1:*'],
+        },
+      },
+    },
+  },
+
+  routeRules: {
+    // Stripe calls this server-to-server: no CSRF token, and the raw body must be preserved.
+    '/api/webhooks/stripe': {
+      csurf: false,
+      security: {
+        xssValidator: false,
+        requestSizeLimiter: false,
+      },
+    },
+  },
+})
+=== FILE: server/api/webhooks/stripe.post.ts ===
+import Stripe from 'stripe'
+
+let stripe: Stripe | undefined
+
+function getStripe(apiKey: string): Stripe {
+  if (!stripe) stripe = new Stripe(apiKey || 'sk_unused_for_webhook_verification')
+  return stripe
+}
+
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event)
+  const secret = config.stripeWebhookSecret as string
+
+  if (!secret) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook secret not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  // Must be the exact raw bytes Stripe signed — never the parsed JSON.
+  const rawBody = await readRawBody(event, false)
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty body' })
+  }
+
+  let stripeEvent: Stripe.Event
+  try {
+    stripeEvent = await getStripe(config.stripeSecretKey as string).webhooks.constructEventAsync(
+      rawBody,
+      signature,
+      secret,
+    )
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid Stripe signature' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed': {
+      const session = stripeEvent.data.object as Stripe.Checkout.Session
+      await handleCheckoutCompleted(session, stripeEvent.id)
+      break
+    }
+    default:
+      break
+  }
+
+  return { received: true }
+})
+
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId: string) {
+  // Stripe may deliver the same event more than once — make fulfillment idempotent on eventId / session.id.
+  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+    return
+  }
+
+  console.info('[stripe] checkout.session.completed', {
+    eventId,
+    sessionId: session.id,
+    customer: session.customer,
+    email: session.customer_details?.email,
+    amountTotal: session.amount_total,
+    currency: session.currency,
+    clientReferenceId: session.client_reference_id,
+    metadata: session.metadata,
+  })
+
+  // TODO: fulfill the order (e.g. mark order paid in DB, keyed on session.id)
+}
+=== END ===

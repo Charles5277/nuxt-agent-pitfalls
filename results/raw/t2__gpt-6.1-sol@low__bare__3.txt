@@ -1,0 +1,144 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  status: string
+  total: number
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+// Must match the page size returned by GET /api/orders.
+const pageSize = 10
+
+const sortOptions = [
+  { label: 'Order ID', value: 'id' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+
+const page = computed(() => {
+  const value = Number(route.query.page)
+  return Number.isSafeInteger(value) && value > 0 ? value : 1
+})
+
+const sort = computed(() => {
+  const value = route.query.sort
+  return typeof value === 'string'
+    && sortOptions.some(option => option.value === value)
+    ? value
+    : 'id'
+})
+
+async function changePage(value: number) {
+  await router.push({
+    query: { ...route.query, page: String(value), sort: sort.value }
+  })
+}
+
+async function changeSort(value: string) {
+  await router.push({
+    query: { ...route.query, page: '1', sort: value }
+  })
+}
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>(
+  '/api/orders',
+  {
+    $fetch: $api,
+    query: { page, sort },
+    default: () => ({ items: [], total: 0 })
+  }
+)
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order ID' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' }
+]
+</script>
+
+<template>
+  <main class="mx-auto max-w-6xl space-y-6 p-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">
+        Orders
+      </h1>
+
+      <USelect
+        :model-value="sort"
+        :items="sortOptions"
+        aria-label="Sort orders"
+        class="w-48"
+        @update:model-value="changeSort"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      title="Unable to load orders"
+      :description="error.message"
+    >
+      <template #actions>
+        <UButton
+          color="error"
+          variant="soft"
+          label="Retry"
+          @click="refresh()"
+        />
+      </template>
+    </UAlert>
+
+    <UTable
+      :data="data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+      empty="No orders found."
+    />
+
+    <UPagination
+      :page="page"
+      :total="data.total"
+      :items-per-page="pageSize"
+      aria-label="Orders pagination"
+      @update:page="changePage"
+    />
+  </main>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      const url = typeof request === 'string'
+        ? request
+        : request.url
+
+      const isApiRequest = /^\/api(?:\/|\?|#|$)/.test(url)
+
+      if (isApiRequest && token.value) {
+        const headers = new Headers(options.headers)
+        headers.set('Authorization', `Bearer ${token.value}`)
+        options.headers = headers
+      }
+    }
+  })
+
+  return {
+    provide: {
+      api
+    }
+  }
+})
+=== END ===

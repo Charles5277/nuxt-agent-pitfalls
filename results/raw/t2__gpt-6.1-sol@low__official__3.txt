@@ -1,0 +1,167 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  createdAt: string
+  status: string
+  total: number
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+// Must match the fixed page size used by GET /api/orders.
+const pageSize = 10
+
+const sortItems = [
+  { label: 'Date', value: 'createdAt' },
+  { label: 'Order ID', value: 'id' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+
+const page = computed(() => {
+  const raw = Array.isArray(route.query.page)
+    ? route.query.page[0]
+    : route.query.page
+  const value = Number(raw)
+  return Number.isSafeInteger(value) && value > 0 ? value : 1
+})
+
+const sort = computed(() => {
+  const raw = Array.isArray(route.query.sort)
+    ? route.query.sort[0]
+    : route.query.sort
+  return sortItems.some(item => item.value === raw) ? raw! : 'createdAt'
+})
+
+function changePage(value: number) {
+  return router.push({
+    query: { ...route.query, page: String(value), sort: sort.value }
+  })
+}
+
+function changeSort(value: string) {
+  return router.push({
+    query: { ...route.query, page: '1', sort: value }
+  })
+}
+
+const query = computed(() => ({
+  page: page.value,
+  sort: sort.value
+}))
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>(
+  '/api/orders',
+  {
+    $fetch: $api,
+    query,
+    default: () => ({ items: [], total: 0 })
+  }
+)
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order ID' },
+  { accessorKey: 'createdAt', header: 'Date' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' }
+]
+</script>
+
+<template>
+  <main class="mx-auto max-w-6xl space-y-6 p-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+
+      <USelect
+        :model-value="sort"
+        :items="sortItems"
+        aria-label="Sort orders"
+        class="w-48"
+        @update:model-value="changeSort"
+      />
+    </div>
+
+    <div v-if="error" role="alert" class="flex items-center gap-4">
+      <p class="text-error">Unable to load orders.</p>
+      <UButton label="Retry" variant="outline" @click="refresh()" />
+    </div>
+
+    <UTable
+      :data="error ? [] : data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+      :pagination-options="{ manualPagination: true }"
+      :sorting-options="{ manualSorting: true }"
+    />
+
+    <UPagination
+      :page="page"
+      :total="data.total"
+      :items-per-page="pageSize"
+      @update:page="changePage"
+    />
+  </main>
+</template>
+=== FILE: app/plugins/api.ts ===
+/**
+ * All application API requests must use useNuxtApp().$api, or pass
+ * { $fetch: useNuxtApp().$api } to useFetch.
+ *
+ * Nuxt has no app-scoped interceptor for every fetch transport:
+ * this plugin cannot intercept native fetch, ordinary $fetch/useFetch,
+ * or requests originating in Nitro. Replacing globalThis.$fetch during
+ * SSR would risk sharing authentication between concurrent users.
+ *
+ * https://nuxt.com/docs/4.x/guide/recipes/custom-usefetch
+ */
+export default defineNuxtPlugin({
+  name: 'api',
+  enforce: 'pre',
+  setup() {
+    const token = useCookie<string | null>('token')
+    const origin = useRequestURL().origin
+
+    const api = $fetch.create({
+      onRequest({ request, options }) {
+        const input = typeof request === 'string'
+          ? request
+          : request.url
+
+        const base = new URL(options.baseURL || '/', origin)
+        const url = new URL(input, base)
+
+        if (
+          url.origin !== origin
+          || !(url.pathname === '/api' || url.pathname.startsWith('/api/'))
+        ) {
+          return
+        }
+
+        const headers = new Headers(options.headers)
+
+        if (token.value) {
+          headers.set('Authorization', `Bearer ${token.value}`)
+        } else {
+          headers.delete('Authorization')
+        }
+
+        options.headers = headers
+      }
+    })
+
+    return {
+      provide: { api }
+    }
+  }
+})
+=== END ===

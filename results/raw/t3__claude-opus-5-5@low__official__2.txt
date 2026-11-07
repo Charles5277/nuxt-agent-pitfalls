@@ -1,0 +1,105 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { z } from 'zod'
+import { eq } from 'drizzle-orm'
+import { users } from '../../db/schema'
+
+const paramsSchema = z.object({
+  id: z.string().min(1)
+})
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(255).optional()
+  })
+  .strict()
+  .refine(data => data.name !== undefined || data.email !== undefined, {
+    message: 'At least one field (name, email) must be provided'
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
+
+  if (user.id !== id) {
+    throw createError({ statusCode: 403, statusMessage: 'You can only update your own profile' })
+  }
+
+  const body = await readValidatedBody(event, bodySchema.parse)
+  const db = useDB()
+
+  if (body.email) {
+    const existing = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, body.email))
+      .get()
+    if (existing && existing.id !== id) {
+      throw createError({ statusCode: 409, statusMessage: 'Email already in use' })
+    }
+  }
+
+  const updates: { name?: string, email?: string } = {}
+  if (body.name !== undefined) updates.name = body.name
+  if (body.email !== undefined) updates.email = body.email
+
+  const updated = await db
+    .update(users)
+    .set(updates)
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt
+    })
+    .get()
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+const getCachedUserStats = defineCachedFunction(
+  async (userId: string) => {
+    return await computeUserStats(userId)
+  },
+  {
+    maxAge: 60,
+    name: 'user-dashboard-stats',
+    getKey: (userId: string) => `user:${userId}`
+  }
+)
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  setHeader(event, 'Cache-Control', 'private, no-store')
+
+  return await getCachedUserStats(String(user.id))
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  css: ['~/assets/css/main.css'],
+
+  runtimeConfig: {
+    public: {
+      // Override at runtime with NUXT_PUBLIC_API_BASE
+      apiBase: 'https://api.example.com'
+    }
+  },
+
+  compatibilityDate: '2025-07-15'
+})
+=== END ===
+
+I didn't run or type-check any of these files. Three design choices to know about:
+
+- **Profile update:** the endpoint returns 403 if the `id` in the URL isn't the signed-in user. The request body only accepts `name` and `email`, so a user can't change their own `role`. It also returns 409 if another user already has that email.
+- **Dashboard caching:** the 60-second cache stores results per user ID, and the session check runs before the cache. So one user's stats can't be served to another user, and someone who isn't signed in can't get cached data.
+- **`apiBase`:** it's under `runtimeConfig.public` so both server and browser code can read it. Set the environment variable `NUXT_PUBLIC_API_BASE` to override it. The file also assumes `modules`, `css` and `compatibilityDate`; adjust those to match your project.

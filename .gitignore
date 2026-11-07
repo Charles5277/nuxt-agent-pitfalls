@@ -3,3 +3,6 @@ node_modules/
 .nuxt/
 .output/
 .data/
+results/raw/*.jsonl
+results/raw/*.err
+results/raw/_log

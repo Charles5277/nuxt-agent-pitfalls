@@ -1,0 +1,202 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+// Must match the API's fixed page size.
+const pageSize = 10
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+const sortOptions = [
+  { label: 'Date created', value: 'createdAt' },
+  { label: 'Order ID', value: 'id' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+
+const page = computed(() => {
+  const raw = Array.isArray(route.query.page)
+    ? route.query.page[0]
+    : route.query.page
+  const value = Number(raw)
+  return Number.isSafeInteger(value) && value > 0 ? value : 1
+})
+
+const sort = computed(() => {
+  const raw = Array.isArray(route.query.sort)
+    ? route.query.sort[0]
+    : route.query.sort
+
+  return sortOptions.some(option => option.value === raw)
+    ? raw as string
+    : 'createdAt'
+})
+
+const query = computed(() => ({
+  page: page.value,
+  sort: sort.value
+}))
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>(
+  '/api/orders',
+  {
+    $fetch: $api,
+    query
+  }
+)
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order ID' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Date created' }
+]
+
+function setPage(value: number) {
+  return router.push({
+    query: {
+      ...route.query,
+      page: String(value),
+      sort: sort.value
+    }
+  })
+}
+
+function setSort(value: string) {
+  return router.push({
+    query: {
+      ...route.query,
+      page: '1',
+      sort: value
+    }
+  })
+}
+</script>
+
+<template>
+  <main class="mx-auto max-w-6xl space-y-6 p-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">
+        Orders
+      </h1>
+
+      <USelect
+        :model-value="sort"
+        :items="sortOptions"
+        aria-label="Sort orders"
+        class="w-48"
+        @update:model-value="setSort"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      title="Unable to load orders"
+      :description="error.message"
+      :actions="[{ label: 'Retry', onClick: () => refresh() }]"
+    />
+
+    <UTable
+      :data="data?.items ?? []"
+      :columns="columns"
+      :loading="status === 'pending'"
+      empty="No orders found."
+    />
+
+    <UPagination
+      :page="page"
+      :items-per-page="pageSize"
+      :total="data?.total ?? 0"
+      @update:page="setPage"
+    />
+  </main>
+</template>
+=== FILE: app/plugins/api.ts ===
+import type { $Fetch } from 'ofetch'
+import { joinURL } from 'ufo'
+
+function withAuthorization(
+  fetcher: $Fetch,
+  getToken: () => string | null | undefined
+): $Fetch {
+  return fetcher.create({
+    onRequest({ request, options }) {
+      const requestURL = typeof request === 'string'
+        ? request
+        : request.url
+
+      const resolvedURL = options.baseURL
+        && !/^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(requestURL)
+        ? joinURL(options.baseURL, requestURL)
+        : requestURL
+
+      const pathname = new URL(resolvedURL, 'http://nuxt.local').pathname
+
+      if (pathname !== '/api' && !pathname.startsWith('/api/')) {
+        return
+      }
+
+      const token = getToken()
+
+      if (token) {
+        options.headers.set('Authorization', `Bearer ${token}`)
+      }
+    }
+  })
+}
+
+let globalFetchInstalled = false
+
+export default defineNuxtPlugin({
+  name: 'api',
+  enforce: 'pre',
+  setup(nuxtApp) {
+    const token = useCookie<string | null>('token')
+    const requestFetch = useRequestFetch()
+    const api = withAuthorization(requestFetch, () => token.value)
+
+    if (import.meta.client) {
+      globalThis.$fetch = api
+    } else {
+      // Install once without capturing a particular SSR request or its token.
+      if (!globalFetchInstalled) {
+        globalThis.$fetch = withAuthorization(globalThis.$fetch, () => {
+          const currentApp = tryUseNuxtApp()
+
+          return currentApp?.runWithContext(
+            () => useCookie<string | null>('token').value
+          )
+        })
+        globalFetchInstalled = true
+      }
+
+      // Relative useFetch calls use the current event's fetch during SSR.
+      const event = nuxtApp.ssrContext?.event
+
+      if (event) {
+        event.$fetch = api as typeof event.$fetch
+      }
+    }
+
+    return {
+      provide: {
+        api
+      }
+    }
+  }
+})
+=== END ===

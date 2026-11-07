@@ -1,0 +1,149 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+const DEFAULT_SORT = 'createdAt'
+
+const sortOptions = [
+  { label: 'Order date', value: 'createdAt' },
+  { label: 'Order ID', value: 'id' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed<number>(() => {
+  const n = Number(route.query.page)
+  return Number.isInteger(n) && n > 0 ? n : 1
+})
+
+const sort = computed<string>(() => {
+  const s = typeof route.query.sort === 'string' ? route.query.sort : ''
+  return sortOptions.some(o => o.value === s) ? s : DEFAULT_SORT
+})
+
+const { data, status, error } = useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  default: () => ({ items: [], total: 0 })
+})
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) =>
+      new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(row.original.total)
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString()
+  }
+]
+
+function onPageChange(value: number) {
+  router.push({ query: { ...route.query, page: String(value) } })
+}
+
+function onSortChange(value: string | undefined) {
+  if (!value) return
+  router.push({ query: { ...route.query, sort: value, page: '1' } })
+}
+</script>
+
+<template>
+  <div class="mx-auto max-w-5xl space-y-4 p-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect
+        :model-value="sort"
+        :items="sortOptions"
+        value-key="value"
+        label-key="label"
+        class="w-48"
+        @update:model-value="onSortChange"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+    />
+
+    <UTable
+      :data="data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+      class="rounded-lg border border-default"
+    />
+
+    <div class="flex justify-end">
+      <UPagination
+        :page="page"
+        :items-per-page="PAGE_SIZE"
+        :total="data.total"
+        @update:page="onPageChange"
+      />
+    </div>
+  </div>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  // Only same-origin or relative URLs whose path starts with /api receive the header.
+  const isApiRequest = (request: RequestInfo | URL): boolean => {
+    const url = typeof request === 'string' ? request : request instanceof URL ? request.href : request.url
+    if (url.startsWith('/')) {
+      return new URL(url, 'http://internal').pathname.startsWith('/api')
+    }
+    if (import.meta.client) {
+      const parsed = new URL(url)
+      return parsed.origin === window.location.origin && parsed.pathname.startsWith('/api')
+    }
+    return false
+  }
+
+  const baseFetch = globalThis.$fetch
+  const apiFetch = baseFetch.create({
+    onRequest({ request, options }) {
+      if (!token.value || !isApiRequest(request)) return
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    }
+  })
+
+  // Global replacement so useFetch/useAsyncData/$fetch calls made in the app use the interceptor.
+  globalThis.$fetch = apiFetch
+
+  return {
+    provide: {
+      api: apiFetch
+    }
+  }
+})
+=== END ===

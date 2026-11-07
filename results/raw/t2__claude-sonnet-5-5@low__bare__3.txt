@@ -1,0 +1,157 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: number | string
+  customer?: string
+  status?: string
+  total?: number
+  createdAt?: string
+  [key: string]: unknown
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 10
+
+const route = useRoute()
+const router = useRouter()
+
+const sortOptions = [
+  { label: 'Newest', value: 'createdAt' },
+  { label: 'ID', value: 'id' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+
+const page = computed<number>({
+  get() {
+    const n = Number(Array.isArray(route.query.page) ? route.query.page[0] : route.query.page)
+    return Number.isInteger(n) && n > 0 ? n : 1
+  },
+  set(value) {
+    router.push({ query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed<string>({
+  get() {
+    const s = Array.isArray(route.query.sort) ? route.query.sort[0] : route.query.sort
+    return s && sortOptions.some(o => o.value === s) ? s : 'createdAt'
+  },
+  set(value) {
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>('/api/orders', {
+  query: { page, sort },
+  watch: [page, sort],
+  default: () => ({ items: [], total: 0 })
+})
+
+const items = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => {
+      const v = row.getValue('total') as number | undefined
+      return typeof v === 'number' ? v.toFixed(2) : ''
+    }
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => {
+      const v = row.getValue('createdAt') as string | undefined
+      return v ? new Date(v).toLocaleString() : ''
+    }
+  }
+]
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-xl font-semibold">
+        Orders
+      </h1>
+      <USelect
+        v-model="sort"
+        :items="sortOptions"
+        class="w-48"
+        aria-label="Sort orders"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+      :actions="[{ label: 'Retry', onClick: () => refresh() }]"
+    />
+
+    <UTable
+      :data="items"
+      :columns="columns"
+      :loading="status === 'pending'"
+    />
+
+    <div class="flex justify-end">
+      <UPagination
+        v-model:page="page"
+        :items-per-page="PAGE_SIZE"
+        :total="total"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin({
+  name: 'api-auth',
+  setup() {
+    const token = useCookie<string | null>('token')
+
+    const isApiUrl = (request: unknown): boolean => {
+      const url = typeof request === 'string'
+        ? request
+        : request instanceof URL
+          ? request.pathname
+          : (request as Request | undefined)?.url ?? ''
+      return url === '/api' || url.startsWith('/api/') || url.startsWith('/api?')
+    }
+
+    const originalFetch = globalThis.$fetch
+
+    const api = originalFetch.create({
+      onRequest({ request, options }) {
+        if (!isApiUrl(request) || !token.value) return
+        const headers = new Headers(options.headers as HeadersInit | undefined)
+        headers.set('Authorization', `Bearer ${token.value}`)
+        options.headers = headers
+      }
+    })
+
+    globalThis.$fetch = api as typeof globalThis.$fetch
+
+    return {
+      provide: {
+        api
+      }
+    }
+  }
+})
+=== END ===

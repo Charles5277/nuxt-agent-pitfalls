@@ -1,0 +1,90 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(255).optional()
+  })
+  .strict()
+  .refine(data => data.name !== undefined || data.email !== undefined, {
+    message: 'At least one of name or email must be provided'
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing user id' })
+  }
+
+  if (id !== user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'You can only update your own profile' })
+  }
+
+  const body = await readValidatedBody(event, bodySchema.parse)
+
+  const patch: { name?: string, email?: string } = {}
+  if (body.name !== undefined) patch.name = body.name
+  if (body.email !== undefined) patch.email = body.email
+
+  const db = useDB()
+  const [updated] = await db
+    .update(users)
+    .set(patch)
+    .where(eq(users.id, user.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+```
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+const getCachedUserStats = defineCachedFunction(
+  async (userId: string) => {
+    return await computeUserStats(userId)
+  },
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    getKey: (userId: string) => userId
+  }
+)
+
+export default defineEventHandler(async (event) => {
+  // Auth runs on every request; only the expensive computation is cached, keyed per user.
+  const { user } = await requireUserSession(event)
+
+  return await getCachedUserStats(user.id)
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  runtimeConfig: {
+    public: {
+      // Readable on server and client. Override with NUXT_PUBLIC_API_BASE.
+      apiBase: 'https://api.example.com'
+    }
+  },
+
+  compatibilityDate: '2025-07-15'
+})
+```
+=== END ===

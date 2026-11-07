@@ -1,0 +1,110 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(254).optional(),
+  })
+  .strict()
+  .refine(data => data.name !== undefined || data.email !== undefined, {
+    message: 'At least one of name or email is required',
+  })
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing user id' })
+  }
+
+  // Users may only update their own profile.
+  if (id !== session.user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const data = await readValidatedBody(event, (body) => {
+    const result = updateProfileSchema.safeParse(body)
+    if (!result.success) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid request body',
+        data: result.error.flatten(),
+      })
+    }
+    return result.data
+  })
+
+  const [updated] = await useDB()
+    .update(users)
+    .set({
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.email !== undefined && { email: data.email }),
+    })
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+```
+=== END ===
+
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+import type { H3Event } from 'h3'
+
+/**
+ * Caches the signed-in user's dashboard stats for 60 seconds.
+ * The cache key is derived from the user id so that one user's
+ * stats are never served to another user.
+ */
+export default defineCachedEventHandler(
+  async (event) => {
+    const session = await requireUserSession(event)
+    return await computeUserStats(session.user.id)
+  },
+  {
+    name: 'dashboard-stats',
+    group: 'me',
+    maxAge: 60,
+    swr: false,
+    getKey: async (event: H3Event) => {
+      const session = await requireUserSession(event)
+      return `user-${session.user.id}`
+    },
+  },
+)
+```
+=== END ===
+
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  runtimeConfig: {
+    // Exposed to both server and browser code.
+    // Overridable at runtime via NUXT_PUBLIC_API_BASE.
+    public: {
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+```
+=== END ===

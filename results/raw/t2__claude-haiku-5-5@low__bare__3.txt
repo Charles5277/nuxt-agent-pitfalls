@@ -1,0 +1,121 @@
+=== FILE: app/plugins/api.ts ===
+```ts
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  const apiFetch = globalThis.$fetch.create({
+    onRequest({ request, options }) {
+      const url = typeof request === 'string' ? request : request.toString()
+      if (!/^(https?:\/\/[^/]+)?\/api(\/|\?|#|$)/.test(url)) return
+      if (!token.value) return
+
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    },
+  })
+
+  // Nuxt's useFetch/useAsyncData and $fetch resolve the global $fetch at call time,
+  // so overriding it applies the header to every request that hits /api.
+  globalThis.$fetch = apiFetch as typeof globalThis.$fetch
+})
+```
+=== END ===
+
+=== FILE: app/pages/orders.vue ===
+```vue
+<script setup lang="ts">
+interface Order {
+  id: string
+  customer: string
+  total: number
+  status: string
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+
+const SORT_OPTIONS = [
+  { label: 'Newest first', value: 'createdAt:desc' },
+  { label: 'Oldest first', value: 'createdAt:asc' },
+  { label: 'Total (high to low)', value: 'total:desc' },
+  { label: 'Total (low to high)', value: 'total:asc' },
+  { label: 'Customer (A–Z)', value: 'customer:asc' },
+  { label: 'Customer (Z–A)', value: 'customer:desc' },
+]
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed<number>({
+  get() {
+    const raw = Number.parseInt(String(route.query.page ?? '1'), 10)
+    return Number.isFinite(raw) && raw > 0 ? raw : 1
+  },
+  set(value) {
+    router.replace({ query: { ...route.query, page: String(value) } })
+  },
+})
+
+const sort = computed<string>({
+  get() {
+    const raw = route.query.sort
+    const value = typeof raw === 'string' ? raw : ''
+    return SORT_OPTIONS.some(o => o.value === value) ? value : 'createdAt:desc'
+  },
+  set(value) {
+    // Changing the sort invalidates the current page position, so reset to page 1.
+    router.replace({ query: { ...route.query, sort: value, page: '1' } })
+  },
+})
+
+const { data, status } = await useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  default: () => ({ items: [], total: 0 }),
+})
+
+const total = computed(() => data.value?.total ?? 0)
+const rows = computed(() => data.value?.items ?? [])
+
+const columns = [
+  { accessorKey: 'id', header: 'Order ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' },
+]
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect
+        v-model="sort"
+        :items="SORT_OPTIONS"
+        class="w-56"
+      />
+    </div>
+
+    <UTable
+      :data="rows"
+      :columns="columns"
+      :loading="status === 'pending'"
+    />
+
+    <div class="flex justify-center">
+      <UPagination
+        v-model:page="page"
+        :total="total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
+</template>
+```
+=== END ===

@@ -1,0 +1,116 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+import Stripe from 'stripe'
+
+let stripeClient: Stripe | null = null
+
+function getStripe(secretKey: string): Stripe {
+  if (!stripeClient) {
+    stripeClient = new Stripe(secretKey)
+  }
+  return stripeClient
+}
+
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  // Stripe may deliver the same event more than once. Make fulfillment idempotent,
+  // for example by recording session.id and skipping sessions already processed.
+  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+    // Async payment methods: wait for checkout.session.async_payment_succeeded.
+    return
+  }
+
+  console.info('[stripe] checkout.session.completed', {
+    sessionId: session.id,
+    customer: session.customer,
+    clientReferenceId: session.client_reference_id,
+    amountTotal: session.amount_total,
+    currency: session.currency,
+  })
+
+  // TODO: fulfill the order (mark paid, grant access, send email, ...)
+}
+
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event)
+  const webhookSecret = config.stripeWebhookSecret
+  const secretKey = config.stripeSecretKey
+
+  if (!webhookSecret || !secretKey) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe is not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe signature' })
+  }
+
+  // Signature verification requires the exact raw bytes, not a parsed body.
+  const rawBody = await readRawBody(event, false)
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty body' })
+  }
+
+  let stripeEvent: Stripe.Event
+  try {
+    stripeEvent = await getStripe(secretKey).webhooks.constructEventAsync(
+      rawBody,
+      signature,
+      webhookSecret,
+    )
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid Stripe signature' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed':
+      await handleCheckoutSessionCompleted(stripeEvent.data.object)
+      break
+    default:
+      break
+  }
+
+  return { received: true }
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Set via NUXT_STRIPE_SECRET_KEY / NUXT_STRIPE_WEBHOOK_SECRET
+    stripeSecretKey: '',
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  // Dev only: allow the Vite HMR websocket. Production CSP is unchanged.
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          'connect-src': ["'self'", 'ws:', 'wss:'],
+        },
+      },
+    },
+  },
+
+  routeRules: {
+    // Stripe authenticates via signature, not a CSRF token; it also needs the untouched raw body.
+    '/api/webhooks/stripe': {
+      csurf: false,
+      security: {
+        xssValidator: false,
+      },
+    },
+  },
+})
+=== END ===

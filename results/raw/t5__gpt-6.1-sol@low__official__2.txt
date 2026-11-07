@@ -1,0 +1,165 @@
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  routeRules: {
+    '/api/webhooks/stripe': {
+      // [CSRF route configuration](https://nuxt-security.vercel.app/middleware/csrf)
+      csurf: false,
+      security: {
+        xssValidator: false,
+      },
+    },
+  },
+
+  $development: {
+    security: {
+      headers: {
+        // [CSP configuration](https://nuxt-security.vercel.app/headers/csp)
+        contentSecurityPolicy: {
+          'connect-src': ["'self'", 'ws:', 'wss:'],
+          'upgrade-insecure-requests': false,
+        },
+      },
+    },
+  },
+})
+=== FILE: server/api/webhooks/stripe.post.ts ===
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { Buffer } from 'node:buffer'
+import { createError, defineEventHandler, getHeader, readRawBody } from 'h3'
+import { useRuntimeConfig } from '#imports'
+
+interface StripeEvent {
+  id: string
+  type: string
+  data: {
+    object: Record<string, unknown>
+  }
+}
+
+function verifySignature(
+  body: Buffer,
+  signature: string,
+  secret: string,
+): boolean {
+  const parts = signature.split(',').map(part => part.trim())
+  const timestamps = parts.filter(part => part.startsWith('t='))
+  const signatures = parts.filter(part => part.startsWith('v1='))
+
+  if (timestamps.length !== 1) return false
+
+  const timestamp = timestamps[0]!.slice(2)
+  if (!/^\d+$/.test(timestamp)) return false
+
+  const signedAt = Number(timestamp)
+  const now = Math.floor(Date.now() / 1000)
+
+  if (!Number.isSafeInteger(signedAt) || Math.abs(now - signedAt) > 300) {
+    return false
+  }
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestamp}.`, 'utf8')
+    .update(body)
+    .digest()
+
+  return signatures.some((part) => {
+    const hex = part.slice(3)
+    if (!/^[a-f\d]{64}$/i.test(hex)) return false
+
+    const received = Buffer.from(hex, 'hex')
+    return received.length === expected.length
+      && timingSafeEqual(received, expected)
+  })
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Stripe webhook secret is not configured',
+    })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Missing Stripe signature',
+    })
+  }
+
+  // Verify the original bytes before parsing JSON.
+  // [Stripe signature implementation](https://github.com/stripe/stripe-node/blob/master/src/Webhooks.ts)
+  const body = await readRawBody(event, false)
+
+  if (!body || !verifySignature(body, signature, stripeWebhookSecret)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid Stripe signature',
+    })
+  }
+
+  let stripeEvent: StripeEvent
+
+  try {
+    const parsed: unknown = JSON.parse(body.toString('utf8'))
+
+    if (
+      !parsed
+      || typeof parsed !== 'object'
+      || !('id' in parsed)
+      || typeof parsed.id !== 'string'
+      || !('type' in parsed)
+      || typeof parsed.type !== 'string'
+      || !('data' in parsed)
+      || !parsed.data
+      || typeof parsed.data !== 'object'
+      || !('object' in parsed.data)
+      || !parsed.data.object
+      || typeof parsed.data.object !== 'object'
+      || Array.isArray(parsed.data.object)
+    ) {
+      throw new Error('Invalid event')
+    }
+
+    stripeEvent = parsed as StripeEvent
+  } catch {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid Stripe event payload',
+    })
+  }
+
+  if (stripeEvent.type === 'checkout.session.completed') {
+    const session = stripeEvent.data.object
+
+    console.info('Stripe checkout session completed', {
+      eventId: stripeEvent.id,
+      sessionId: session.id,
+      paymentStatus: session.payment_status,
+    })
+  }
+
+  return { received: true }
+})
+=== END ===

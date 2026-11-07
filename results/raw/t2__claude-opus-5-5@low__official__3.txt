@@ -1,0 +1,187 @@
+=== FILE: app/plugins/api.ts ===
+import type { FetchOptions } from 'ofetch'
+
+function isApiRequest(request: RequestInfo | URL): boolean {
+  const url = typeof request === 'string'
+    ? request
+    : request instanceof URL
+      ? request.href
+      : request.url
+  try {
+    const path = new URL(url, 'http://localhost').pathname
+    return path === '/api' || path.startsWith('/api/')
+  }
+  catch {
+    return url.startsWith('/api')
+  }
+}
+
+export default defineNuxtPlugin({
+  name: 'api',
+  enforce: 'pre',
+  setup(nuxtApp) {
+    const onRequest: FetchOptions['onRequest'] = ({ request, options }) => {
+      if (!isApiRequest(request)) return
+      const token = nuxtApp.runWithContext(() => useCookie<string | null>('token').value)
+      if (!token) return
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${token}`)
+      options.headers = headers
+    }
+
+    const api = $fetch.create({ onRequest })
+
+    // On the client there is exactly one app instance, so it is safe to make
+    // the global $fetch (used by useFetch / $fetch everywhere) send the token.
+    // On the server globalThis is shared between concurrent requests, so the
+    // per-request `$api` instance is used instead.
+    if (import.meta.client) {
+      globalThis.$fetch = api as typeof globalThis.$fetch
+    }
+
+    return {
+      provide: {
+        api,
+      },
+    }
+  },
+})
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  customer: string
+  total: number
+  status: string
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 10
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+const sortOptions = [
+  { label: 'Newest first', value: '-createdAt' },
+  { label: 'Oldest first', value: 'createdAt' },
+  { label: 'Total (high → low)', value: '-total' },
+  { label: 'Total (low → high)', value: 'total' },
+  { label: 'Customer (A → Z)', value: 'customer' },
+  { label: 'Status', value: 'status' },
+]
+const defaultSort = sortOptions[0]!.value
+
+function firstQuery(value: unknown): string | undefined {
+  const v = Array.isArray(value) ? value[0] : value
+  return typeof v === 'string' && v !== '' ? v : undefined
+}
+
+const page = computed<number>({
+  get() {
+    const n = Number.parseInt(firstQuery(route.query.page) ?? '1', 10)
+    return Number.isFinite(n) && n > 0 ? n : 1
+  },
+  set(value) {
+    router.push({ query: { ...route.query, page: value > 1 ? String(value) : undefined } })
+  },
+})
+
+const sort = computed<string>({
+  get() {
+    const s = firstQuery(route.query.sort)
+    return s && sortOptions.some(o => o.value === s) ? s : defaultSort
+  },
+  set(value) {
+    // Changing the sort resets to the first page
+    router.push({
+      query: {
+        ...route.query,
+        sort: value === defaultSort ? undefined : value,
+        page: undefined,
+      },
+    })
+  },
+})
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>('/api/orders', {
+  $fetch: $api as typeof $fetch,
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  default: () => ({ items: [], total: 0 }),
+})
+
+const orders = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const dateFmt = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currency.format(Number(row.getValue('total'))),
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => {
+      const d = new Date(String(row.getValue('createdAt')))
+      return Number.isNaN(d.getTime()) ? '—' : dateFmt.format(d)
+    },
+  },
+]
+</script>
+
+<template>
+  <div class="p-4 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-xl font-semibold">
+        Orders
+      </h1>
+      <USelect
+        v-model="sort"
+        :items="sortOptions"
+        value-key="value"
+        class="w-56"
+        aria-label="Sort orders"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+      :actions="[{ label: 'Retry', onClick: () => refresh() }]"
+    />
+
+    <UTable
+      :data="orders"
+      :columns="columns"
+      :loading="status === 'pending'"
+      empty="No orders found."
+    />
+
+    <div class="flex items-center justify-between">
+      <span class="text-sm text-muted">{{ total }} orders</span>
+      <UPagination
+        v-model:page="page"
+        :total="total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </div>
+</template>
+=== END ===

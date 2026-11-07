@@ -1,0 +1,85 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(255).optional(),
+  })
+  .strict()
+  .refine(v => v.name !== undefined || v.email !== undefined, {
+    message: 'At least one field (name or email) is required',
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id || id !== user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, bodySchema.parse)
+
+  const values: { name?: string, email?: string } = {}
+  if (body.name !== undefined) values.name = body.name
+  if (body.email !== undefined) values.email = body.email
+
+  const db = useDB()
+
+  try {
+    const [updated] = await db
+      .update(users)
+      .set(values)
+      .where(eq(users.id, user.id))
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+      })
+
+    if (!updated) {
+      throw createError({ statusCode: 404, statusMessage: 'User not found' })
+    }
+
+    return updated
+  }
+  catch (error: any) {
+    if (error?.statusCode) throw error
+    if (String(error?.message ?? error?.cause?.message ?? '').includes('UNIQUE')) {
+      throw createError({ statusCode: 409, statusMessage: 'Email already in use' })
+    }
+    throw error
+  }
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+const getCachedUserStats = defineCachedFunction(
+  (userId: string) => computeUserStats(userId),
+  {
+    name: 'user-dashboard-stats',
+    getKey: (userId: string) => userId,
+    maxAge: 60,
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  // Auth runs on every request; only the per-user computation is cached.
+  const { user } = await requireUserSession(event)
+  return await getCachedUserStats(user.id)
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+  css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    // Exposed to both server and browser (public). Override with NUXT_PUBLIC_API_BASE.
+    public: {
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+=== END ===

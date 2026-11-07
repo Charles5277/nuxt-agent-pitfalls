@@ -1,0 +1,1 @@
+{"shell:/usr/bin/zsh -lc 'cat ~/.cache/nuxt-agent-pitfalls/.sandbox/codex-official/skills/nuxt-ui/SKILL.md'": 1, "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*orders*' -g '*api*'\"": 1, "nuxt-ui:get-component": 3}

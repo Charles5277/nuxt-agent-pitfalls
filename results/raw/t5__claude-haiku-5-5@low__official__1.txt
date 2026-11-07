@@ -1,0 +1,140 @@
+=== FILE: nuxt.config.ts ===
+```ts
+const isDev = process.env.NODE_ENV !== 'production'
+
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Server-only. Set via NUXT_STRIPE_WEBHOOK_SECRET.
+    stripeWebhookSecret: '',
+  },
+
+  routeRules: {
+    // Stripe cannot send CSRF tokens; the webhook is authenticated by its signature instead.
+    '/api/webhooks/**': { security: { csrf: false } },
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        // Dev only: Vite HMR connects over a websocket and needs inline/eval scripts.
+        'connect-src': isDev ? ["'self'", 'ws:', 'wss:'] : ["'self'"],
+        'img-src': ["'self'", 'data:'],
+        ...(isDev
+          ? { 'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"] }
+          : {}),
+      },
+    },
+    csrf: true,
+  },
+})
+```
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const SIGNATURE_TOLERANCE_SECONDS = 300
+
+interface StripeEvent {
+  id: string
+  type: string
+  data: { object: Record<string, unknown> }
+}
+
+interface CheckoutSession {
+  id: string
+  payment_status?: string
+  customer_details?: { email?: string | null } | null
+  metadata?: Record<string, string> | null
+  amount_total?: number | null
+  currency?: string | null
+}
+
+/**
+ * Verifies a Stripe-Signature header (https://docs.stripe.com/webhooks#verify-manually).
+ * Header format: "t=<unix timestamp>,v1=<hex hmac>[,v1=...]"
+ */
+function verifyStripeSignature(payload: string, header: string, secret: string): boolean {
+  const pairs = header.split(',').map(part => part.trim().split('='))
+  const timestamp = pairs.find(([key]) => key === 't')?.[1]
+  const signatures = pairs.filter(([key]) => key === 'v1').map(([, value]) => value ?? '')
+
+  if (!timestamp || signatures.length === 0) return false
+
+  const ts = Number(timestamp)
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > SIGNATURE_TOLERANCE_SECONDS) {
+    return false
+  }
+
+  const expected = Buffer.from(
+    createHmac('sha256', secret).update(`${timestamp}.${payload}`, 'utf8').digest('hex'),
+    'hex',
+  )
+
+  return signatures.some((signature) => {
+    const actual = Buffer.from(signature, 'hex')
+    return actual.length === expected.length && timingSafeEqual(actual, expected)
+  })
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook secret is not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  // Must be the exact raw body that Stripe signed, so read it as text before any parsing.
+  const payload = await readRawBody(event, 'utf8')
+  if (!payload) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty request body' })
+  }
+
+  if (!verifyStripeSignature(payload, signature, stripeWebhookSecret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid Stripe signature' })
+  }
+
+  let stripeEvent: StripeEvent
+  try {
+    stripeEvent = JSON.parse(payload) as StripeEvent
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid JSON payload' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed': {
+      const session = stripeEvent.data.object as unknown as CheckoutSession
+
+      // Stripe retries webhooks, so fulfillment must be idempotent keyed on the event or session id.
+      if (session.payment_status !== 'paid') {
+        // Delayed payment methods: fulfil later via checkout.session.async_payment_succeeded.
+        return { received: true, fulfilled: false }
+      }
+
+      console.info('[stripe] checkout.session.completed', {
+        eventId: stripeEvent.id,
+        sessionId: session.id,
+        email: session.customer_details?.email ?? null,
+        amountTotal: session.amount_total ?? null,
+        currency: session.currency ?? null,
+        metadata: session.metadata ?? {},
+      })
+
+      return { received: true, fulfilled: true }
+    }
+
+    default:
+      return { received: true, ignored: stripeEvent.type }
+  }
+})
+```
+=== END ===

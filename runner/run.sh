@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Usage: runner/run.sh <task:t1..t5> <arm> <cond:bare|official> <rep>
-# arms: claude-opus-5-5@medium | claude-sonnet-5-5@high | claude-haiku-5-5@xhigh | gpt-6.1-sol@high
+# Usage: runner/run.sh <task:t1..t5> <cli:claude|codex> <model-id> <effort> <env:bare|official> <rep>
+#   e.g. runner/run.sh t2 claude claude-haiku-5-5 low bare 1
+# The arm id is built as <model-id>@<effort> and names the result files (results/raw/<task>__<arm>__<env>__<rep>.txt).
+# Short form (original 4 arms): runner/run.sh <task> <arm> <env> <rep>   e.g. runner/run.sh t1 claude-opus-5-5@medium bare 1
+# Set DRY_RUN=1 to print the resolved arm and exit without running anything.
 #
 # Every run happens inside bubblewrap with $HOME replaced by an empty tmpfs, so the agent cannot
 # read any local rules, skills, or repos (codex scans ~/.agents/skills regardless of CODEX_HOME).
@@ -11,7 +14,15 @@
 #   CODEX_PKG    path to the codex npm package dir that contains vendor/.../bin/codex
 set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd); S=$ROOT/.sandbox; RAW=$ROOT/results/raw
-t=$1; arm=$2; cond=$3; rep=$4; N=${t}__${arm}__${cond}__${rep}; O=$RAW/$N; W=$S/work/$N
+if [ $# -eq 6 ]; then t=$1; cli=$2; model=$3; effort=$4; cond=$5; rep=$6; arm=$model@$effort
+elif [ $# -eq 4 ]; then t=$1; arm=$2; cond=$3; rep=$4; model=${arm%@*}; effort=${arm#*@}
+  case $model in claude-*) cli=claude;; *) cli=codex;; esac
+else sed -n 2,6p "$0" >&2; exit 2; fi
+case $cli in claude|codex) ;; *) echo "cli must be claude or codex" >&2; exit 2;; esac
+case $cond in bare|official) ;; *) echo "env must be bare or official" >&2; exit 2;; esac
+[ -f "$(dirname "$0")/../tasks/$t.txt" ] || { echo "unknown task $t" >&2; exit 2; }
+if [ -n "${DRY_RUN:-}" ]; then echo "task=$t cli=$cli model=$model effort=$effort env=$cond rep=$rep arm=$arm file=${t}__${arm}__${cond}__${rep}"; exit 0; fi
+N=${t}__${arm}__${cond}__${rep}; O=$RAW/$N; W=$S/work/$N
 [ -s "$O.txt" ] && exit 0
 : "${CLAUDE_CREDENTIALS:=$HOME/.claude/.credentials.json}"; : "${CODEX_AUTH:=$HOME/.codex/auth.json}"
 CX=$(find "$CODEX_PKG" -path '*vendor/*/bin/codex' -type f | head -1)
@@ -31,13 +42,11 @@ cc() {
     --output-format stream-json --verbose --no-session-persistence < /dev/null > "$O.jsonl" 2> "$O.err"
   python3 -I "$ROOT/runner/extract.py" claude "$O.jsonl" "$O.txt" "$O.tools"
 }
-case $arm in
-  claude-opus-5-5@medium) cc claude-opus-5-5 medium;;
-  claude-sonnet-5-5@high) cc claude-sonnet-5-5 high;;
-  claude-haiku-5-5@xhigh) cc claude-haiku-5-5 xhigh;;
-  gpt-6.1-sol@high)
-    timeout 900 "${SBX[@]}" --setenv CODEX_HOME "$CXH" "$CX" exec -s read-only --skip-git-repo-check -m gpt-6.1-sol \
-      -c model_reasoning_effort=high --json -o "$W/_out.txt" "$P" < /dev/null > "$O.jsonl" 2> "$O.err"
+case $cli in
+  claude) cc "$model" "$effort";;
+  codex)
+    timeout 900 "${SBX[@]}" --setenv CODEX_HOME "$CXH" "$CX" exec -s read-only --skip-git-repo-check -m "$model" \
+      -c model_reasoning_effort="$effort" --json -o "$W/_out.txt" "$P" < /dev/null > "$O.jsonl" 2> "$O.err"
     cp "$W/_out.txt" "$O.txt" 2>/dev/null
     python3 -I "$ROOT/runner/extract.py" codex "$O.jsonl" "$O.txt" "$O.tools";;
 esac

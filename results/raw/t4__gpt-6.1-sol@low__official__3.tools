@@ -1,0 +1,1 @@
+{"shell:/usr/bin/zsh -lc \"rg --files -g '*nuxthub*' -g 'package.json' -g 'nuxt.config.*' -g 'AGENTS.md'\"": 1}

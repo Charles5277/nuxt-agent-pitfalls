@@ -1,0 +1,181 @@
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin((nuxtApp) => {
+  const token = useCookie<string | null>('token')
+
+  const isApiRequest = (request: RequestInfo | URL): boolean => {
+    let url: string
+    if (typeof request === 'string') url = request
+    else if (request instanceof URL) url = request.href
+    else url = request.url
+
+    if (url.startsWith('/api/') || url === '/api' || url.startsWith('/api?')) return true
+
+    try {
+      const parsed = new URL(url, 'http://localhost')
+      return parsed.pathname === '/api' || parsed.pathname.startsWith('/api/')
+    } catch {
+      return false
+    }
+  }
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      if (!isApiRequest(request)) return
+      const value = token.value
+      if (!value) return
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${value}`)
+      options.headers = headers
+    },
+  })
+
+  // Make every $fetch / useFetch call in the app go through the authenticated client.
+  globalThis.$fetch = api as typeof globalThis.$fetch
+  nuxtApp.provide('api', api)
+})
+
+declare module '#app' {
+  interface NuxtApp {
+    $api: typeof $fetch
+  }
+}
+
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    $api: typeof $fetch
+  }
+}
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  customer: string
+  total: number
+  status: string
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const ITEMS_PER_PAGE = 20
+
+const sortOptions = [
+  { label: 'Newest first', value: '-createdAt' },
+  { label: 'Oldest first', value: 'createdAt' },
+  { label: 'Total (high → low)', value: '-total' },
+  { label: 'Total (low → high)', value: 'total' },
+  { label: 'Customer (A → Z)', value: 'customer' },
+  { label: 'Status', value: 'status' },
+]
+const DEFAULT_SORT = sortOptions[0]!.value
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+const firstQueryValue = (v: unknown): string | undefined => {
+  if (Array.isArray(v)) return v[0] ?? undefined
+  return typeof v === 'string' ? v : undefined
+}
+
+const page = computed<number>({
+  get() {
+    const n = Number.parseInt(firstQueryValue(route.query.page) ?? '1', 10)
+    return Number.isFinite(n) && n > 0 ? n : 1
+  },
+  set(value) {
+    router.push({ query: { ...route.query, page: String(value) } })
+  },
+})
+
+const sort = computed<string>({
+  get() {
+    const s = firstQueryValue(route.query.sort)
+    return s && sortOptions.some(o => o.value === s) ? s : DEFAULT_SORT
+  },
+  set(value) {
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  },
+})
+
+const query = computed(() => ({ page: page.value, sort: sort.value }))
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>('/api/orders', {
+  key: 'orders-list',
+  query,
+  $fetch: $api,
+  watch: [query],
+  default: () => ({ items: [], total: 0 }),
+})
+
+const items = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+
+const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' })
+const dateFmt = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currency.format(Number(row.getValue('total'))),
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => {
+      const d = new Date(String(row.getValue('createdAt')))
+      return Number.isNaN(d.getTime()) ? '' : dateFmt.format(d)
+    },
+  },
+]
+</script>
+
+<template>
+  <div class="mx-auto max-w-6xl space-y-4 p-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect
+        v-model="sort"
+        :items="sortOptions"
+        value-key="value"
+        label-key="label"
+        class="w-56"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+      :actions="[{ label: 'Retry', onClick: () => refresh() }]"
+    />
+
+    <UTable
+      :data="items"
+      :columns="columns"
+      :loading="status === 'pending'"
+      empty="No orders found."
+    />
+
+    <div class="flex items-center justify-between">
+      <span class="text-sm text-muted">{{ total }} orders</span>
+      <UPagination
+        v-model:page="page"
+        :total="total"
+        :items-per-page="ITEMS_PER_PAGE"
+      />
+    </div>
+  </div>
+</template>
+=== END ===

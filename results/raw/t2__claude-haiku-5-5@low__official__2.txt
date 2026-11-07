@@ -1,0 +1,101 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+const PAGE_SIZE = 10
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed({
+  get: () => Math.max(1, Number(route.query.page) || 1),
+  set: (value: number) => {
+    router.push({ query: { ...route.query, page: value } })
+  }
+})
+
+const sort = computed({
+  get: () => (typeof route.query.sort === 'string' && route.query.sort) || 'createdAt',
+  set: (value: string) => {
+    router.push({ query: { ...route.query, sort: value, page: 1 } })
+  }
+})
+
+const sortOptions = [
+  { label: 'Date', value: 'createdAt' },
+  { label: 'ID', value: 'id' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Total', value: 'total' }
+]
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' }
+]
+
+const { data, status } = await useFetch<{ items: Order[]; total: number }>('/api/orders', {
+  query: { page, sort },
+  default: () => ({ items: [], total: 0 })
+})
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect v-model="sort" :items="sortOptions" class="w-48" />
+    </div>
+
+    <UTable
+      :data="data?.items ?? []"
+      :columns="columns"
+      :loading="status === 'pending'"
+    />
+
+    <div class="flex justify-end">
+      <UPagination
+        v-model:page="page"
+        :items-per-page="PAGE_SIZE"
+        :total="data?.total ?? 0"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  const isApiRequest = (request: unknown) => {
+    const url = typeof request === 'string' ? request : String(request)
+    return new URL(url, 'http://localhost').pathname.startsWith('/api')
+  }
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      if (!token.value || !isApiRequest(request)) return
+      const headers = new Headers(options.headers)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    }
+  })
+
+  globalThis.$fetch = api as typeof globalThis.$fetch
+
+  return {
+    provide: {
+      api
+    }
+  }
+})
+=== END ===

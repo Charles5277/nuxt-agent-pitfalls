@@ -1,0 +1,121 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+
+const route = useRoute()
+const router = useRouter()
+
+const sortOptions = [
+  { label: 'Newest', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Status', value: 'status' },
+  { label: 'ID', value: 'id' }
+]
+
+const page = computed(() => {
+  const n = Number(route.query.page)
+  return Number.isInteger(n) && n > 0 ? n : 1
+})
+
+const sort = computed(() => {
+  const s = typeof route.query.sort === 'string' ? route.query.sort : ''
+  return sortOptions.some(o => o.value === s) ? s : 'createdAt'
+})
+
+const { data, status, error } = await useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  default: () => ({ items: [], total: 0 })
+})
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' }
+]
+
+function setQuery(patch: Record<string, string | number>) {
+  router.push({ query: { ...route.query, ...patch } })
+}
+
+function onPageChange(p: number) {
+  setQuery({ page: p })
+}
+
+function onSortChange(s: string) {
+  setQuery({ sort: s, page: 1 })
+}
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect
+        :model-value="sort"
+        :items="sortOptions"
+        value-key="value"
+        label-key="label"
+        class="w-48"
+        @update:model-value="onSortChange"
+      />
+    </div>
+
+    <UTable :data="data.items" :columns="columns" :loading="status === 'pending'" />
+
+    <p v-if="error" class="text-error">Failed to load orders.</p>
+
+    <div class="flex justify-end">
+      <UPagination
+        :page="page"
+        :total="data.total"
+        :items-per-page="PAGE_SIZE"
+        @update:page="onPageChange"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  const authedFetch = globalThis.$fetch.create({
+    onRequest({ request, options }) {
+      const value = token.value
+      if (!value) return
+
+      const url = typeof request === 'string' ? request : request.url
+      const pathname = new URL(url, 'http://localhost').pathname
+      if (!pathname.startsWith('/api')) return
+
+      const headers = new Headers(options.headers)
+      headers.set('Authorization', `Bearer ${value}`)
+      options.headers = headers
+    }
+  })
+
+  // Route every $fetch call (including useFetch/useAsyncData, which use
+  // globalThis.$fetch) through the authenticated instance.
+  globalThis.$fetch = authedFetch
+
+  return {
+    provide: {
+      api: authedFetch
+    }
+  }
+})
+=== END ===

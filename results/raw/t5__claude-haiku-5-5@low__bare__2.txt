@@ -1,0 +1,106 @@
+=== FILE: nuxt.config.ts ===
+```ts
+const isDev = process.env.NODE_ENV !== 'production'
+
+const productionCsp = {
+  'default-src': ["'self'"],
+  'connect-src': ["'self'"],
+  'img-src': ["'self'", 'data:'],
+}
+
+// Dev needs inline/eval for Vite and a websocket for HMR.
+const devCsp = {
+  'default-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+  'connect-src': ["'self'", 'ws:', 'wss:'],
+  'img-src': ["'self'", 'data:'],
+}
+
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+  runtimeConfig: {
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+  },
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: isDev ? devCsp : productionCsp,
+    },
+    csrf: true,
+  },
+  routeRules: {
+    // Stripe posts webhooks without browser origin headers; skip CSRF for this route only.
+    '/api/webhooks/stripe': {
+      security: { csrf: false },
+    },
+  },
+})
+=== END ===
+
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import Stripe from 'stripe'
+import type Stripe as StripeType from 'stripe'
+
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event)
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  if (!config.stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook secret not configured' })
+  }
+
+  const rawBody = await readRawBody(event, false)
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty request body' })
+  }
+
+  const stripe = new Stripe(config.stripeSecretKey || '')
+
+  let stripeEvent: StripeType.Event
+  try {
+    stripeEvent = stripe.webhooks.constructEvent(
+      rawBody,
+      signature,
+      config.stripeWebhookSecret,
+    )
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Invalid signature'
+    throw createError({ statusCode: 400, statusMessage: `Webhook signature verification failed: ${message}` })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed': {
+      const session = stripeEvent.data.object as StripeType.Checkout.Session
+      await handleCheckoutSessionCompleted(session)
+      break
+    }
+    default:
+      break
+  }
+
+  return { received: true }
+})
+
+async function handleCheckoutSessionCompleted(session: StripeType.Checkout.Session): Promise<void> {
+  if (session.payment_status !== 'paid') {
+    return
+  }
+
+  const orderReference = session.client_reference_id ?? null
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
+
+  console.info('[stripe] checkout.session.completed', {
+    sessionId: session.id,
+    orderReference,
+    customerId,
+    amountTotal: session.amount_total,
+    currency: session.currency,
+  })
+}
+```
+=== END ===

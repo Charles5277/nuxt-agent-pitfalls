@@ -1,0 +1,94 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { z } from 'zod'
+import { eq } from 'drizzle-orm'
+import { users } from '../../db/schema'
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(254).optional(),
+  })
+  .strict()
+  .refine(v => v.name !== undefined || v.email !== undefined, {
+    message: 'At least one field must be provided',
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id || id !== String(user.id)) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, bodySchema.parse)
+
+  const patch: { name?: string, email?: string } = {}
+  if (body.name !== undefined) patch.name = body.name
+  if (body.email !== undefined) patch.email = body.email
+
+  const db = useDB()
+
+  try {
+    const [updated] = await db
+      .update(users)
+      .set(patch)
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+      })
+
+    if (!updated) {
+      throw createError({ statusCode: 404, statusMessage: 'User not found' })
+    }
+
+    return updated
+  }
+  catch (err: any) {
+    if (err?.statusCode) throw err
+    if (String(err?.message || err?.cause?.message).includes('UNIQUE')) {
+      throw createError({ statusCode: 409, statusMessage: 'Email already in use' })
+    }
+    throw err
+  }
+})
+```
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+const getCachedUserStats = defineCachedFunction(
+  async (userId: string) => {
+    return await computeUserStats(userId)
+  },
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    getKey: (userId: string) => userId,
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  // Auth runs on every request; only the per-user computation is cached.
+  const { user } = await requireUserSession(event)
+  return await getCachedUserStats(String(user.id))
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+
+  runtimeConfig: {
+    // Public keys are readable on both server and client
+    // (useRuntimeConfig().public.apiBase).
+    // Override at runtime with NUXT_PUBLIC_API_BASE.
+    public: {
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+```
+=== END ===

@@ -1,0 +1,99 @@
+=== FILE: nuxt.config.ts ===
+const isDev = process.env.NODE_ENV === 'development'
+
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Set NUXT_STRIPE_WEBHOOK_SECRET in the server environment.
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': isDev ? ["'self'", 'ws:', 'wss:'] : ["'self'"],
+        'img-src': ["'self'", 'data:'],
+        ...(isDev ? { 'upgrade-insecure-requests': false } : {}),
+      },
+    },
+    csrf: true,
+  },
+
+  routeRules: {
+    // https://nuxt-security.vercel.app/middleware/csrf
+    '/api/webhooks/stripe': {
+      csurf: false,
+    },
+  },
+})
+=== FILE: server/api/webhooks/stripe.post.ts ===
+// Requires the stripe package: pnpm add stripe
+import Stripe from 'stripe'
+import { createError, defineEventHandler, getHeader, readRawBody } from 'h3'
+import { useRuntimeConfig } from '#imports'
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Stripe webhook secret is not configured',
+    })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+
+  if (!signature) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Missing Stripe signature',
+    })
+  }
+
+  const rawBody = await readRawBody(event, false)
+
+  if (!rawBody?.length) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Missing webhook body',
+    })
+  }
+
+  let stripeEvent: Stripe.Event
+
+  try {
+    // Verify the original bytes before parsing or processing the event.
+    // https://github.com/stripe/stripe-node
+    stripeEvent = await Stripe.webhooks.constructEventAsync(
+      rawBody,
+      signature,
+      stripeWebhookSecret,
+    )
+  } catch {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid Stripe webhook signature or payload',
+    })
+  }
+
+  if (stripeEvent.type === 'checkout.session.completed') {
+    const session = stripeEvent.data.object
+
+    console.info('Stripe checkout session completed', {
+      eventId: stripeEvent.id,
+      sessionId: session.id,
+      paymentStatus: session.payment_status,
+    })
+
+    // Add application fulfillment here. Persist deduplication by session.id
+    // transactionally with fulfillment, and await completion before returning.
+    // A completed session may still have payment_status === 'unpaid'.
+  }
+
+  return { received: true }
+})
+=== END ===
