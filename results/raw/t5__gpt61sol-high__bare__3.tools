@@ -1,0 +1,1 @@
+{"shell:/usr/bin/zsh -lc \"pwd && rg --files -g 'AGENTS.md' -g 'nuxt.config.*' -g 'package.json' -g '*lock*' -g 'server/**'\"": 1}

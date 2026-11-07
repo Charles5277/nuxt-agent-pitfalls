@@ -1,0 +1,1 @@
+{"shell:kage.json' -g 'nuxt.config.*' -g 'AGENTS.md' -g '*lock*' -g 'server/**' -g '\"'!node_modules'\"' -g '\"'!pnpm-lock.yaml'\"'\"": 1, "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '\"'!node_modules'\"'\"": 1}

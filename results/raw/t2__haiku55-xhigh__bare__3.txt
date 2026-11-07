@@ -1,0 +1,155 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrderPage {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+const sortItems = [
+  { label: 'Date', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' }
+]
+
+const page = computed(() => {
+  const n = Number(route.query.page)
+  return Number.isInteger(n) && n > 0 ? n : 1
+})
+
+const sort = computed(() => {
+  const raw = Array.isArray(route.query.sort) ? route.query.sort[0] : route.query.sort
+  const found = sortItems.find(item => item.value === raw)
+  return found ? found.value : sortItems[0].value
+})
+
+const { data, status, error } = useFetch<OrderPage>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  watch: [page, sort],
+  $fetch: $api
+})
+
+const items = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+const loading = computed(() => status.value === 'pending')
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => row.original.total.toFixed(2)
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => new Date(row.original.createdAt).toISOString()
+  }
+]
+
+function setPage(next: number) {
+  router.push({ query: { ...route.query, page: String(next) } })
+}
+
+function setSort(next: string) {
+  router.push({ query: { ...route.query, sort: next, page: '1' } })
+}
+</script>
+
+<template>
+  <div class="space-y-4 p-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect
+        :model-value="sort"
+        :items="sortItems"
+        value-key="value"
+        class="w-48"
+        @update:model-value="(value) => setSort(String(value))"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+    />
+
+    <UTable :data="items" :columns="columns" :loading="loading" />
+
+    <div v-if="total > PAGE_SIZE" class="flex justify-end">
+      <UPagination
+        :page="page"
+        :total="total"
+        :items-per-page="PAGE_SIZE"
+        @update:page="setPage"
+      />
+    </div>
+  </div>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  const apiBase = import.meta.client ? window.location.origin : 'http://internal.invalid'
+
+  // Only same-origin /api paths receive the token, so it is never sent to other hosts.
+  const isApiRequest = (raw: string): boolean => {
+    let url: URL
+    try {
+      url = new URL(raw, apiBase)
+    } catch {
+      return false
+    }
+    return url.origin === apiBase && (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+  }
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      const raw = typeof request === 'string'
+        ? request
+        : request instanceof URL
+          ? request.href
+          : request.url
+
+      if (!token.value || !isApiRequest(raw)) return
+
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    }
+  })
+
+  // The server's globalThis is shared across concurrent requests, so it is only replaced on the client.
+  // On the server, pass `$api` explicitly to useFetch so each request uses its own token.
+  if (import.meta.client) {
+    globalThis.$fetch = api
+  }
+
+  return {
+    provide: {
+      api
+    }
+  }
+})
+=== END ===

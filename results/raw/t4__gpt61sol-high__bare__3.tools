@@ -1,0 +1,1 @@
+{"shell:\"pwd && rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*schema*' -g 'wrangler*' -g 'pnpm-lock.yaml'\"": 1}

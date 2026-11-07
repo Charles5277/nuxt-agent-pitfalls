@@ -1,0 +1,254 @@
+=== FILE: app/plugins/api.ts ===
+import type { FetchContext } from 'ofetch'
+
+function resolvePath(request: FetchContext['request']): string {
+  const raw = typeof request === 'string'
+    ? request
+    : request instanceof URL
+      ? request.toString()
+      : request.url
+
+  if (raw.startsWith('/')) {
+    return raw
+  }
+
+  try {
+    const url = new URL(raw)
+    if (import.meta.client && url.origin !== window.location.origin) {
+      return ''
+    }
+    return url.pathname
+  }
+  catch {
+    return ''
+  }
+}
+
+function isApiRequest(request: FetchContext['request']): boolean {
+  const path = resolvePath(request)
+  return path === '/api' || path.startsWith('/api/') || path.startsWith('/api?')
+}
+
+export default defineNuxtPlugin({
+  name: 'api',
+  enforce: 'pre',
+  setup() {
+    const token = useCookie<string | null>('token')
+
+    const onRequest = ({ request, options }: FetchContext) => {
+      if (!isApiRequest(request)) {
+        return
+      }
+      const value = token.value
+      if (!value) {
+        return
+      }
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      if (!headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${value}`)
+      }
+      options.headers = headers
+    }
+
+    const baseFetch = globalThis.$fetch
+
+    const api = baseFetch.create({
+      onRequest,
+    }) as typeof $fetch
+
+    if (import.meta.client) {
+      globalThis.$fetch = api
+    }
+
+    return {
+      provide: {
+        api,
+      },
+    }
+  },
+})
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn, SelectItem } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+
+const SORT_FIELDS = ['createdAt', 'total', 'status', 'customer'] as const
+type SortField = (typeof SORT_FIELDS)[number]
+const DEFAULT_SORT: SortField = 'createdAt'
+
+const sortItems: SelectItem[] = [
+  { label: 'Created date', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Status', value: 'status' },
+  { label: 'Customer', value: 'customer' },
+]
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+function firstQueryValue(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    return typeof value[0] === 'string' ? value[0] : undefined
+  }
+  return typeof value === 'string' ? value : undefined
+}
+
+function updateQuery(patch: { page?: number, sort?: SortField }) {
+  const query = { ...route.query }
+  if (patch.page !== undefined) {
+    query.page = patch.page > 1 ? String(patch.page) : undefined
+  }
+  if (patch.sort !== undefined) {
+    query.sort = patch.sort !== DEFAULT_SORT ? patch.sort : undefined
+  }
+  for (const key of Object.keys(query)) {
+    if (query[key] === undefined) {
+      delete query[key]
+    }
+  }
+  router.push({ query })
+}
+
+const page = computed<number>({
+  get() {
+    const parsed = Number.parseInt(firstQueryValue(route.query.page) ?? '', 10)
+    return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1
+  },
+  set(value) {
+    updateQuery({ page: value })
+  },
+})
+
+const sort = computed<SortField>({
+  get() {
+    const value = firstQueryValue(route.query.sort)
+    return (SORT_FIELDS as readonly string[]).includes(value ?? '')
+      ? (value as SortField)
+      : DEFAULT_SORT
+  },
+  set(value) {
+    if (value === sort.value) {
+      return
+    }
+    updateQuery({ sort: value, page: 1 })
+  },
+})
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>('/api/orders', {
+  $fetch: $api,
+  query: computed(() => ({
+    page: page.value,
+    sort: sort.value,
+  })),
+  default: () => ({ items: [], total: 0 }),
+})
+
+const items = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+const loading = computed(() => status.value === 'pending')
+
+watch(total, (value) => {
+  const lastPage = Math.max(1, Math.ceil(value / PAGE_SIZE))
+  if (value > 0 && page.value > lastPage) {
+    page.value = lastPage
+  }
+})
+
+const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' })
+const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+
+const columns: TableColumn<Order>[] = [
+  {
+    accessorKey: 'id',
+    header: 'Order',
+    cell: ({ row }) => `#${row.getValue('id')}`,
+  },
+  {
+    accessorKey: 'customer',
+    header: 'Customer',
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+  },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currency.format(Number(row.getValue('total'))),
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => {
+      const date = new Date(String(row.getValue('createdAt')))
+      return Number.isNaN(date.getTime()) ? String(row.getValue('createdAt')) : dateFormat.format(date)
+    },
+  },
+]
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">
+        Orders
+      </h1>
+
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-muted">Sort by</span>
+        <USelect
+          v-model="sort"
+          :items="sortItems"
+          class="w-44"
+        />
+      </div>
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-circle-alert"
+      title="Failed to load orders"
+      :description="error.message"
+      :actions="[{ label: 'Retry', onClick: () => refresh() }]"
+    />
+
+    <UTable
+      :data="items"
+      :columns="columns"
+      :loading="loading"
+      class="flex-1"
+    />
+
+    <div class="flex items-center justify-between gap-4">
+      <span class="text-sm text-muted">
+        {{ total }} orders
+      </span>
+
+      <UPagination
+        v-if="total > PAGE_SIZE"
+        v-model:page="page"
+        :total="total"
+        :items-per-page="PAGE_SIZE"
+        :disabled="loading"
+      />
+    </div>
+  </UContainer>
+</template>
+=== END ===

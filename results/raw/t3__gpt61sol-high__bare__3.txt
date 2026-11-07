@@ -1,0 +1,83 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { eq } from 'drizzle-orm'
+import { createError, defineEventHandler, getRouterParam, readValidatedBody } from 'h3'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const profileSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  email: z.string().trim().email().max(254).optional(),
+}).strict().refine(
+  body => body.name !== undefined || body.email !== undefined,
+  { message: 'Provide at least one of name or email' },
+)
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing user ID' })
+  }
+
+  if (id !== user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  // [H3 validated bodies](https://v1.h3.dev/utils/request)
+  const body = await readValidatedBody(event, profileSchema.safeParse)
+
+  // [Drizzle updates](https://orm.drizzle.team/docs/update)
+  const [updatedUser] = await useDB()
+    .update(users)
+    .set({ name: body.name, email: body.email })
+    .where(eq(users.id, user.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+    })
+
+  if (!updatedUser) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updatedUser
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+import { createHash } from 'node:crypto'
+import { defineEventHandler, setHeader, type H3Event } from 'h3'
+
+// [Nitro cached functions](https://v2.nitro.build/guide/cache)
+const getCachedUserStats = defineCachedFunction(
+  async (_event: H3Event, userId: string) => computeUserStats(userId),
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    swr: false,
+    getKey: (_event: H3Event, userId: string) =>
+      createHash('sha256').update(userId).digest('hex'),
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'private, no-store')
+
+  const { user } = await requireUserSession(event)
+
+  return getCachedUserStats(event, user.id)
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  runtimeConfig: {
+    public: {
+      // Override with NUXT_PUBLIC_API_BASE.
+      // Server/browser: useRuntimeConfig().public.apiBase
+      // [Nuxt runtime config](https://nuxt.com/docs/4.x/guide/going-further/runtime-config)
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+=== END ===

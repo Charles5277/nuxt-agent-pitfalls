@@ -1,0 +1,111 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const paramsSchema = z.object({
+  id: z.string().min(1)
+})
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(254).optional()
+  })
+  .strict()
+  .refine(data => data.name !== undefined || data.email !== undefined, {
+    message: 'At least one of name or email must be provided'
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  const paramsResult = paramsSchema.safeParse({ id: getRouterParam(event, 'id') })
+  if (!paramsResult.success) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid user id' })
+  }
+  const { id } = paramsResult.data
+
+  if (user.id !== id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, (input) => {
+    const result = bodySchema.safeParse(input)
+    if (!result.success) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid request body',
+        data: result.error.issues
+      })
+    }
+    return result.data
+  })
+
+  const values: { name?: string, email?: string } = {}
+  if (body.name !== undefined) values.name = body.name
+  if (body.email !== undefined) values.email = body.email
+
+  const db = useDB()
+  const [updated] = await db
+    .update(users)
+    .set(values)
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+```
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+const getCachedUserStats = defineCachedFunction(
+  async (userId: string) => {
+    return await computeUserStats(userId)
+  },
+  {
+    name: 'user-dashboard-stats',
+    getKey: (userId: string) => userId,
+    maxAge: 60
+  }
+)
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  setResponseHeader(event, 'Cache-Control', 'private, no-store')
+
+  return await getCachedUserStats(user.id)
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+// https://nuxt.com/docs/api/configuration/nuxt-config
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  devtools: { enabled: true },
+
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  css: ['~/assets/css/main.css'],
+
+  runtimeConfig: {
+    public: {
+      // Overridable at runtime via NUXT_PUBLIC_API_BASE.
+      // Server: useRuntimeConfig(event).public.apiBase
+      // Browser: useRuntimeConfig().public.apiBase
+      apiBase: 'https://api.example.com'
+    }
+  }
+})
+```
+=== END ===

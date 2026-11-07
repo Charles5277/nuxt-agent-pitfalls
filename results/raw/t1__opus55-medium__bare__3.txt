@@ -1,0 +1,97 @@
+=== FILE: app/components/DeleteUserModal.vue ===
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+
+interface DeleteUserModalUser {
+  id: string
+  name: string
+}
+
+const props = defineProps<{
+  open: boolean
+  user: DeleteUserModalUser
+}>()
+
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+  confirm: [user: DeleteUserModalUser]
+}>()
+
+const confirmation = ref('')
+
+const isOpen = computed({
+  get: () => props.open,
+  set: (value: boolean) => emit('update:open', value)
+})
+
+const nameMatches = computed(() => confirmation.value === props.user.name)
+
+watch(
+  () => props.open,
+  (value) => {
+    if (value) {
+      confirmation.value = ''
+    }
+  }
+)
+
+watch(
+  () => props.user.id,
+  () => {
+    confirmation.value = ''
+  }
+)
+
+function onCancel() {
+  isOpen.value = false
+}
+
+function onConfirm() {
+  if (!nameMatches.value) return
+  emit('confirm', { id: props.user.id, name: props.user.name })
+}
+</script>
+
+<template>
+  <UModal
+    v-model:open="isOpen"
+    title="Delete user"
+    :ui="{ content: 'sm:max-w-2xl' }"
+  >
+    <template #body>
+      <div class="space-y-4">
+        <p class="text-sm text-muted">
+          You are about to permanently delete
+          <span class="font-semibold text-highlighted">{{ user.name }}</span>.
+          This action cannot be undone. To confirm, type the user's name below.
+        </p>
+
+        <UInput
+          v-model="confirmation"
+          :placeholder="user.name"
+          autocomplete="off"
+          class="w-full"
+          @keydown.enter.prevent="onConfirm"
+        />
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          label="Cancel"
+          color="neutral"
+          variant="outline"
+          @click="onCancel"
+        />
+        <UButton
+          label="Delete"
+          color="error"
+          :disabled="!nameMatches"
+          @click="onConfirm"
+        />
+      </div>
+    </template>
+  </UModal>
+</template>
+=== END ===

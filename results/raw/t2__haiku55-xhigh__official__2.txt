@@ -1,0 +1,179 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+// Must match the page size used by GET /api/orders.
+const PAGE_SIZE = 10
+
+const SORT_OPTIONS = [
+  { label: 'Date created', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' }
+]
+const SORT_FIELDS = SORT_OPTIONS.map(option => option.value)
+const DEFAULT_SORT = 'createdAt'
+
+const route = useRoute()
+const router = useRouter()
+
+// page and sort live in the route query, so reloads and shared links keep the same view.
+const page = computed(() => {
+  const value = Number(route.query.page)
+  return Number.isInteger(value) && value > 0 ? value : 1
+})
+
+const sort = computed(() => {
+  const value = route.query.sort
+  return typeof value === 'string' && SORT_FIELDS.includes(value) ? value : DEFAULT_SORT
+})
+
+const { $api } = useNuxtApp()
+
+// Refetches whenever page or sort changes.
+const { data, status, error } = await useAsyncData(
+  'orders',
+  () => $api<OrdersResponse>('/api/orders', {
+    query: { page: page.value, sort: sort.value }
+  }),
+  { watch: [page, sort] }
+)
+
+const orders = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' }
+]
+
+const sortModel = computed<string, string | undefined>({
+  get: () => sort.value,
+  set: (value) => {
+    if (!value) return
+    // Changing the sort starts again from the first page.
+    router.push({ query: { ...route.query, sort: value, page: undefined } })
+  }
+})
+
+function setPage(value: number) {
+  router.push({ query: { ...route.query, page: String(value) } })
+}
+
+useHead({ title: 'Orders' })
+</script>
+
+<template>
+  <UContainer class="space-y-6 py-8">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold text-highlighted">
+        Orders
+      </h1>
+
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-muted">Sort by</span>
+        <USelect
+          v-model="sortModel"
+          :items="SORT_OPTIONS"
+          class="w-44"
+        />
+      </div>
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-circle-alert"
+      title="Could not load orders"
+      :description="error.message"
+    />
+
+    <UTable
+      :data="orders"
+      :columns="columns"
+      :loading="status === 'pending'"
+      empty="No orders found"
+    >
+      <template #status-cell="{ row }">
+        <UBadge
+          :label="row.original.status"
+          color="neutral"
+          variant="subtle"
+        />
+      </template>
+    </UTable>
+
+    <div class="flex justify-end">
+      <UPagination
+        :page="page"
+        :items-per-page="PAGE_SIZE"
+        :total="total"
+        @update:page="setPage"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+// Adds `Authorization: Bearer <token>` to every request that targets /api.
+// The token comes from the `token` cookie.
+
+function isApiRequest(request: unknown): boolean {
+  let raw = ''
+  if (typeof request === 'string') raw = request
+  else if (request instanceof URL) raw = request.href
+  else if (request instanceof Request) raw = request.url
+  if (!raw) return false
+
+  const origin = import.meta.client ? window.location.origin : 'http://nuxt.internal'
+  try {
+    const url = new URL(raw, origin)
+    if (url.origin !== origin) return false
+    return url.pathname === '/api' || url.pathname.startsWith('/api/')
+  } catch {
+    return false
+  }
+}
+
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      if (!token.value || !isApiRequest(request)) return
+
+      const headers = new Headers(options.headers)
+      if (!headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token.value}`)
+      }
+      options.headers = headers
+    }
+  })
+
+  // On the client, patch the global $fetch so $fetch, useFetch and useAsyncData all send the header.
+  // On the server the global is shared across requests, so it is not patched there; use $api instead.
+  if (import.meta.client) {
+    globalThis.$fetch = api
+  }
+
+  return {
+    provide: { api }
+  }
+})
+=== END ===

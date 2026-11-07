@@ -1,0 +1,174 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: number
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+// Must match the page size the API returns per request.
+const PAGE_SIZE = 10
+
+const SORT_FIELDS = ['createdAt', 'total', 'customer', 'status'] as const
+type SortField = (typeof SORT_FIELDS)[number]
+
+const sortOptions: { label: string, value: SortField }[] = [
+  { label: 'Date', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+]
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed<number>({
+  get() {
+    const value = Number(route.query.page)
+    return Number.isInteger(value) && value > 0 ? value : 1
+  },
+  set(value) {
+    router.push({ query: { ...route.query, page: String(value) } })
+  },
+})
+
+const sort = computed<SortField>({
+  get() {
+    const value = route.query.sort
+    return SORT_FIELDS.find(field => field === value) ?? 'createdAt'
+  },
+  set(value) {
+    // A new sort order starts again from the first page.
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  },
+})
+
+const { data, status, error } = await useFetch<OrdersResponse>('/api/orders', {
+  key: 'orders-list',
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+})
+
+const items = computed<Order[]>(() => data.value?.items ?? [])
+const total = computed<number>(() => data.value?.total ?? 0)
+
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const dateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' })
+
+const columns: TableColumn<Order>[] = [
+  {
+    accessorKey: 'id',
+    header: 'Order',
+    cell: ({ row }) => `#${row.getValue('id')}`,
+  },
+  {
+    accessorKey: 'customer',
+    header: 'Customer',
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Date',
+    cell: ({ row }) => dateFormat.format(new Date(String(row.getValue('createdAt')))),
+  },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    meta: {
+      class: {
+        th: 'text-right',
+        td: 'text-right font-medium',
+      },
+    },
+    cell: ({ row }) => currency.format(Number(row.getValue('total'))),
+  },
+]
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">
+        Orders
+      </h1>
+      <USelect
+        v-model="sort"
+        :items="sortOptions"
+        placeholder="Sort by"
+        aria-label="Sort orders"
+        class="w-48"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Could not load orders"
+      :description="error.message"
+    />
+
+    <UTable
+      :data="items"
+      :columns="columns"
+      :loading="status === 'pending'"
+      class="flex-1"
+    />
+
+    <div v-if="total > PAGE_SIZE" class="flex justify-center">
+      <UPagination
+        v-model:page="page"
+        :items-per-page="PAGE_SIZE"
+        :total="total"
+        show-edges
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+// Adds `Authorization: Bearer <token>` to client-side requests to /api.
+// On the client, useFetch and $fetch both read globalThis.$fetch at call time, so patching it covers them.
+export default defineNuxtPlugin(() => {
+  // During SSR, globalThis is shared by concurrent requests. Writing a per-user token there
+  // would send one user's token with another user's request, so SSR requests are not patched.
+  if (!import.meta.client) {
+    return
+  }
+
+  const token = useCookie<string | null>('token')
+  const baseFetch = globalThis.$fetch
+
+  globalThis.$fetch = baseFetch.create({
+    onRequest({ request, options }) {
+      if (!token.value || !isApiRequest(request)) {
+        return
+      }
+      const headers = new Headers(options.headers)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    },
+  })
+})
+
+function isApiRequest(request: RequestInfo | URL): boolean {
+  const href = typeof request === 'string'
+    ? request
+    : request instanceof URL
+      ? request.href
+      : request.url
+  const url = new URL(href, location.origin)
+  return url.origin === location.origin
+    && (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+}
+=== END ===

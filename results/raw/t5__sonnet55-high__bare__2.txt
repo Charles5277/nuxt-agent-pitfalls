@@ -1,0 +1,152 @@
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Set via NUXT_STRIPE_WEBHOOK_SECRET
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  routeRules: {
+    // Stripe calls this server-to-server, so it cannot send a CSRF token.
+    // Authenticity is enforced by the Stripe signature check in the handler.
+    '/api/webhooks/stripe': {
+      security: {
+        csrf: false,
+        xssValidator: false,
+      },
+    },
+  },
+
+  // Dev only: allow the Vite HMR websocket. Arrays are merged with the baseline above.
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          'connect-src': [
+            'ws://localhost:*',
+            'ws://127.0.0.1:*',
+            'http://localhost:*',
+            'http://127.0.0.1:*',
+          ],
+        },
+      },
+    },
+  },
+})
+```
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const TOLERANCE_SECONDS = 300
+
+function verifyStripeSignature(payload: string, header: string, secret: string): boolean {
+  let timestamp = ''
+  const signatures: string[] = []
+
+  for (const part of header.split(',')) {
+    const idx = part.indexOf('=')
+    if (idx === -1) continue
+    const key = part.slice(0, idx).trim()
+    const value = part.slice(idx + 1).trim()
+    if (key === 't') timestamp = value
+    else if (key === 'v1') signatures.push(value)
+  }
+
+  if (!timestamp || signatures.length === 0) return false
+
+  const ts = Number(timestamp)
+  if (!Number.isFinite(ts)) return false
+  if (Math.abs(Math.floor(Date.now() / 1000) - ts) > TOLERANCE_SECONDS) return false
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestamp}.${payload}`, 'utf8')
+    .digest()
+
+  return signatures.some((sig) => {
+    if (!/^[0-9a-f]+$/i.test(sig)) return false
+    const received = Buffer.from(sig, 'hex')
+    return received.length === expected.length && timingSafeEqual(received, expected)
+  })
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Webhook secret not configured' })
+  }
+
+  const signatureHeader = getHeader(event, 'stripe-signature')
+  if (!signatureHeader) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  // Signature must be computed over the exact raw body.
+  const rawBody = await readRawBody(event, 'utf8')
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty request body' })
+  }
+
+  if (!verifyStripeSignature(rawBody, signatureHeader, stripeWebhookSecret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid signature' })
+  }
+
+  let stripeEvent: {
+    id: string
+    type: string
+    data: { object: Record<string, any> }
+  }
+  try {
+    stripeEvent = JSON.parse(rawBody)
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid JSON payload' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed': {
+      const session = stripeEvent.data.object
+
+      // For async payment methods the session may complete before funds are received.
+      if (session.payment_status === 'paid' || session.payment_status === 'no_payment_required') {
+        console.info('[stripe] checkout.session.completed', {
+          eventId: stripeEvent.id,
+          sessionId: session.id,
+          clientReferenceId: session.client_reference_id ?? null,
+          mode: session.mode,
+        })
+        // TODO: fulfill the order here (idempotently, keyed on session.id / stripeEvent.id).
+      }
+      else {
+        console.info('[stripe] checkout.session.completed awaiting payment', {
+          eventId: stripeEvent.id,
+          sessionId: session.id,
+          paymentStatus: session.payment_status,
+        })
+      }
+      break
+    }
+    default:
+      // Acknowledge unhandled event types so Stripe does not retry them.
+      break
+  }
+
+  return { received: true }
+})
+```
+=== END ===

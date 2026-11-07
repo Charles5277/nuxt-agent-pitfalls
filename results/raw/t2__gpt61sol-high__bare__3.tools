@@ -1,0 +1,1 @@
+{"shell: 'package.json' -g '*orders*' -g 'app/plugins/**' -g 'app/pages/**' -g 'node_modules/nuxt/dist/app/composables/fetch.*'\"": 1}

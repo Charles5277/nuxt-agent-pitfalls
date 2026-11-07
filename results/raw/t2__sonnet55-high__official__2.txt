@@ -1,0 +1,191 @@
+=== FILE: app/pages/orders.vue ===
+```vue
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 10
+const DEFAULT_SORT = 'createdAt'
+
+const sortItems = [
+  { label: 'Date', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Status', value: 'status' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'ID', value: 'id' }
+]
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+const page = computed({
+  get: () => {
+    const raw = Array.isArray(route.query.page) ? route.query.page[0] : route.query.page
+    const parsed = Number.parseInt(String(raw ?? '1'), 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+  },
+  set: (value: number) => {
+    router.push({ query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed({
+  get: () => {
+    const raw = Array.isArray(route.query.sort) ? route.query.sort[0] : route.query.sort
+    return sortItems.some(item => item.value === raw) ? (raw as string) : DEFAULT_SORT
+  },
+  set: (value: string) => {
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>('/api/orders', {
+  key: 'orders-list',
+  $fetch: $api,
+  query: { page, sort },
+  default: () => ({ items: [], total: 0 })
+})
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' }
+]
+
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+function formatTotal(value: number) {
+  return currency.format(value)
+}
+
+function formatDate(value: string) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US', { dateStyle: 'medium' })
+}
+</script>
+
+<template>
+  <UContainer class="py-8">
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <h1 class="text-2xl font-semibold">
+        Orders
+      </h1>
+
+      <USelect
+        v-model="sort"
+        :items="sortItems"
+        value-key="value"
+        label-key="label"
+        class="w-48"
+        aria-label="Sort orders by"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+      :actions="[{ label: 'Retry', onClick: () => refresh() }]"
+      class="mb-4"
+    />
+
+    <UTable
+      :data="data?.items ?? []"
+      :columns="columns"
+      :loading="status === 'pending'"
+    >
+      <template #status-cell="{ row }">
+        <UBadge variant="subtle" color="neutral">
+          {{ row.original.status }}
+        </UBadge>
+      </template>
+
+      <template #total-cell="{ row }">
+        {{ formatTotal(row.original.total) }}
+      </template>
+
+      <template #createdAt-cell="{ row }">
+        {{ formatDate(row.original.createdAt) }}
+      </template>
+
+      <template #empty>
+        No orders found.
+      </template>
+    </UTable>
+
+    <div class="flex justify-end mt-4">
+      <UPagination
+        v-model:page="page"
+        :total="data?.total ?? 0"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
+</template>
+```
+=== FILE: app/plugins/api.ts ===
+```ts
+export default defineNuxtPlugin({
+  name: 'api',
+  setup() {
+    const token = useCookie<string | null>('token')
+
+    const originalFetch = globalThis.$fetch
+
+    const api = originalFetch.create({
+      onRequest({ request, options }) {
+        const url = typeof request === 'string'
+          ? request
+          : request instanceof URL
+            ? request.pathname
+            : request.url
+
+        if (!url.startsWith('/api') || !token.value) {
+          return
+        }
+
+        const headers = new Headers(options.headers as HeadersInit | undefined)
+        headers.set('Authorization', `Bearer ${token.value}`)
+        options.headers = headers
+      }
+    }) as typeof $fetch
+
+    // In the browser there is a single app instance, so patch the global $fetch
+    // once. This covers useFetch, useAsyncData and any direct $fetch call.
+    if (import.meta.client) {
+      const marker = '__apiAuthFetchPatched'
+      const g = globalThis as typeof globalThis & Record<string, unknown>
+      if (!g[marker]) {
+        g[marker] = true
+        globalThis.$fetch = api
+      }
+    }
+
+    // On the server the global is shared between concurrent requests, so the
+    // per-request instance is exposed via useNuxtApp().$api instead.
+    return {
+      provide: {
+        api
+      }
+    }
+  }
+})
+```
+=== END ===

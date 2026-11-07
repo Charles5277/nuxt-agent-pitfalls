@@ -1,0 +1,16 @@
+Project: Nuxt 4 + @nuxt/ui v4 + Nitro, TypeScript. Write the complete file contents directly. Do not ask questions and do not explain your design.
+Output format (follow strictly): start each file with a line of its own `=== FILE: <relative path> ===`, followed by the full file content; after the last file, a line of its own `=== END ===`.
+nuxt-security is already installed. The company baseline nuxt.config.ts is currently:
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+  security: {
+    rateLimiter: false,
+    headers: { contentSecurityPolicy: { 'default-src': ["'self'"], 'connect-src': ["'self'"], 'img-src': ["'self'", 'data:'] } },
+    csrf: true,
+  },
+})
+```
+Task 1: add a Stripe webhook at server/api/webhooks/stripe.post.ts. Verify the Stripe signature (the secret is runtimeConfig.stripeWebhookSecret), then handle checkout.session.completed.
+Task 2: the team reports that since this CSP was turned on, HMR is broken in local `pnpm dev`. Fix it.
+Write out the full modified nuxt.config.ts.

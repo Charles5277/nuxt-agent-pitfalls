@@ -1,0 +1,1 @@
+{"shell:g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*orders*' -g '*api*' -g '*lock*' -g '*types*' -g 'tsconfig.json'\"": 1}

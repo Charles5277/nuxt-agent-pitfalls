@@ -1,0 +1,192 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+import type { LocationQueryValue } from 'vue-router'
+
+interface Order {
+  id: string | number
+  createdAt: string
+  status: string
+  total: number
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+type SortField = 'id' | 'createdAt' | 'total'
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+// Must match the fixed page size returned by GET /api/orders.
+const pageSize = 10
+
+const sortItems: { label: string; value: SortField }[] = [
+  { label: 'Order ID', value: 'id' },
+  { label: 'Created date', value: 'createdAt' },
+  { label: 'Total', value: 'total' }
+]
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order ID' },
+  { accessorKey: 'createdAt', header: 'Created date' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' }
+]
+
+function firstValue(
+  value: LocationQueryValue | LocationQueryValue[] | undefined
+) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+const page = computed<number>({
+  get() {
+    const value = firstValue(route.query.page)
+    const parsed = Number(value)
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1
+  },
+  set(value) {
+    void router.push({
+      query: {
+        ...route.query,
+        page: String(value),
+        sort: sort.value
+      }
+    })
+  }
+})
+
+const sort = computed<SortField>({
+  get() {
+    const value = firstValue(route.query.sort)
+    return sortItems.find(item => item.value === value)?.value ?? 'id'
+  },
+  set(value) {
+    void router.push({
+      query: {
+        ...route.query,
+        page: '1',
+        sort: value
+      }
+    })
+  }
+})
+
+const query = computed(() => ({
+  page: page.value,
+  sort: sort.value
+}))
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>(
+  '/api/orders',
+  {
+    $fetch: $api,
+    query,
+    default: () => ({ items: [], total: 0 })
+  }
+)
+</script>
+
+<template>
+  <UContainer class="space-y-6 py-8">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+
+      <UFormField label="Sort by" name="sort">
+        <USelect
+          v-model="sort"
+          :items="sortItems"
+          class="w-48"
+        />
+      </UFormField>
+    </div>
+
+    <div v-if="error" class="space-y-3" role="alert">
+      <UAlert
+          color="error"
+          title="Unable to load orders"
+          description="Please try again."
+      />
+      <UButton
+          label="Retry"
+          color="neutral"
+          :loading="status === 'pending'"
+          @click="refresh()"
+      />
+    </div>
+
+    <UTable
+        v-else
+        :data="data.items"
+        :columns="columns"
+        :loading="status === 'pending'"
+    >
+      <template #empty>
+        No orders found.
+      </template>
+    </UTable>
+
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <p class="text-sm text-muted">
+        {{ data.total }} orders
+      </p>
+
+      <UPagination
+          v-model:page="page"
+          :total="data.total"
+          :items-per-page="pageSize"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+import { withBase } from 'ufo'
+
+// Every application API call must use the injected $api client.
+// For useFetch, pass { $fetch: useNuxtApp().$api }.
+// Built-in $fetch/useFetch, native fetch, and Nitro requests are not
+// universally intercepted by an app plugin.
+// See [Nuxt custom fetch](https://nuxt.com/docs/4.x/guide/recipes/custom-usefetch).
+export default defineNuxtPlugin({
+  name: 'api',
+  enforce: 'pre',
+  setup() {
+    const token = useCookie<string | null>('token')
+    const origin = useRequestURL().origin
+
+    const api = $fetch.create({
+      onRequest({ request, options }) {
+        const requestURL = typeof request === 'string'
+          ? request
+          : request.url
+
+        const url = new URL(
+          withBase(requestURL, options.baseURL || ''),
+          origin
+        )
+
+        const isAPI = url.origin === origin
+          && (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+
+        if (!isAPI || !token.value) {
+          return
+        }
+
+        const headers = new Headers(options.headers)
+        headers.set('Authorization', `Bearer ${token.value}`)
+        options.headers = headers
+      }
+    })
+
+    return {
+      provide: {
+        api
+      }
+    }
+  }
+})
+=== END ===

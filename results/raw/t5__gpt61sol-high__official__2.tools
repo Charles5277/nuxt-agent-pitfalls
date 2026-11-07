@@ -1,0 +1,1 @@
+{"shell: 'nuxt.config.*' -g 'package.json' -g '*lock*' -g 'tsconfig.json' -g '*stripe*' -g '\"'!node_modules'\"' -g '\"'!'\"\\\\.git'\"": 1}

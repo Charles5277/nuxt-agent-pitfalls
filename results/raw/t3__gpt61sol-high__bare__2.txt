@@ -1,0 +1,80 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const profileSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  email: z.string().trim().email().max(254).optional(),
+}).strict().refine(
+  body => body.name !== undefined || body.email !== undefined,
+  { message: 'Provide at least one of name or email' },
+)
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  const id = getRouterParam(event, 'id')
+
+  if (id !== user.id) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'You can only update your own profile',
+    })
+  }
+
+  const body = await readValidatedBody(event, profileSchema.parse)
+
+  const [updatedUser] = await useDB()
+    .update(users)
+    .set({
+      ...(body.name !== undefined ? { name: body.name } : {}),
+      ...(body.email !== undefined ? { email: body.email } : {}),
+    })
+    .where(eq(users.id, user.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+
+  if (!updatedUser) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'User not found',
+    })
+  }
+
+  return updatedUser
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+const cachedUserStats = defineCachedFunction(
+  async (userId: string) => computeUserStats(userId),
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    swr: false,
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'private, no-store')
+
+  const { user } = await requireUserSession(event)
+
+  return cachedUserStats(user.id)
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  runtimeConfig: {
+    public: {
+      // Override with NUXT_PUBLIC_API_BASE.
+      // Read with useRuntimeConfig().public.apiBase on server and client.
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+=== END ===

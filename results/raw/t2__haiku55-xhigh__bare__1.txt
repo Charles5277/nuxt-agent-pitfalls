@@ -1,0 +1,159 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+// Must match the page size used by GET /api/orders.
+const PAGE_SIZE = 20
+
+const SORT_FIELDS = ['createdAt', 'customer', 'status', 'total'] as const
+type SortField = (typeof SORT_FIELDS)[number]
+
+function isSortField(value: unknown): value is SortField {
+  return (SORT_FIELDS as readonly unknown[]).includes(value)
+}
+
+const SORT_OPTIONS: { label: string; value: SortField }[] = [
+  { label: 'Newest first', value: 'createdAt' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' },
+]
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' },
+]
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed(() => {
+  const n = Number(route.query.page)
+  return Number.isInteger(n) && n > 0 ? n : 1
+})
+
+const sort = computed<SortField>(() => {
+  const raw = route.query.sort
+  return isSortField(raw) ? raw : 'createdAt'
+})
+
+// Token is attached by the api plugin in the browser only, so fetch on the client.
+const { data, pending, error } = useFetch<OrdersResponse>('/api/orders', {
+  query: { page, sort },
+  default: () => ({ items: [], total: 0 }),
+  server: false,
+})
+
+const items = computed(() => data.value.items)
+const total = computed(() => data.value.total)
+
+function goToPage(next: number) {
+  router.push({ query: { ...route.query, page: next } })
+}
+
+function onSortChange(value: unknown) {
+  if (!isSortField(value)) return
+  router.push({ query: { ...route.query, sort: value, page: 1 } })
+}
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-6">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect
+        :model-value="sort"
+        :items="SORT_OPTIONS"
+        class="w-48"
+        @update:model-value="onSortChange"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      title="Failed to load orders"
+      :description="error.message"
+    />
+
+    <UTable :data="items" :columns="columns" :loading="pending" />
+
+    <div class="flex justify-end">
+      <UPagination
+        :page="page"
+        :items-per-page="PAGE_SIZE"
+        :total="total"
+        @update:page="goToPage"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+// Attaches `Authorization: Bearer <token>` to same-origin requests under /api.
+// Client-side only: server renders run concurrently, so a process-wide $fetch
+// override cannot safely carry a per-request cookie. Server-side calls to /api
+// must forward the cookie explicitly (for example with useRequestFetch()).
+
+const API_PREFIX = '/api'
+
+function isApiRequest(input: RequestInfo | URL): boolean {
+  const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+  try {
+    const url = new URL(raw, window.location.origin)
+    if (url.origin !== window.location.origin) return false
+    return url.pathname === API_PREFIX || url.pathname.startsWith(`${API_PREFIX}/`)
+  }
+  catch {
+    return false
+  }
+}
+
+function withBearer(headers: HeadersInit | undefined, token: string): Headers {
+  const merged = new Headers(headers)
+  merged.set('Authorization', `Bearer ${token}`)
+  return merged
+}
+
+export default defineNuxtPlugin(() => {
+  if (!import.meta.client) return
+
+  const token = useCookie<string | null>('token')
+
+  // Covers $fetch and useFetch/useAsyncData, which call the global $fetch.
+  globalThis.$fetch = $fetch.create({
+    onRequest({ request, options }) {
+      const value = token.value
+      if (!value || !isApiRequest(request)) return
+      options.headers = withBearer(options.headers, value)
+    },
+  })
+
+  // Covers direct fetch() calls.
+  const nativeFetch = window.fetch.bind(window)
+  window.fetch = (input, init) => {
+    const value = token.value
+    if (!value || !isApiRequest(input)) return nativeFetch(input, init)
+
+    const headers = new Headers(input instanceof Request ? input.headers : undefined)
+    new Headers(init?.headers).forEach((headerValue, key) => headers.set(key, headerValue))
+    headers.set('Authorization', `Bearer ${value}`)
+    return nativeFetch(input, { ...init, headers })
+  }
+})
+=== END ===

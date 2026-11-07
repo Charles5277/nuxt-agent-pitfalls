@@ -1,0 +1,159 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+// Must match the page size used by GET /api/orders.
+const PAGE_SIZE = 10
+
+const SORT_FIELDS = ['createdAt', 'total', 'customer', 'status'] as const
+type SortField = (typeof SORT_FIELDS)[number]
+const DEFAULT_SORT: SortField = 'createdAt'
+
+const sortItems = [
+  { label: 'Date created', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' }
+]
+
+const route = useRoute()
+const router = useRouter()
+
+function firstQueryValue(value: unknown): unknown {
+  return Array.isArray(value) ? value[0] : value
+}
+
+const page = computed<number>({
+  get: () => {
+    const value = Number(firstQueryValue(route.query.page))
+    return Number.isInteger(value) && value > 0 ? value : 1
+  },
+  set: (value) => {
+    router.push({ path: route.path, query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed<SortField>({
+  get: () => {
+    const value = firstQueryValue(route.query.sort)
+    return (SORT_FIELDS as readonly unknown[]).includes(value) ? (value as SortField) : DEFAULT_SORT
+  },
+  set: (value) => {
+    // Changing the sort order invalidates the current page, so go back to the first one.
+    router.push({ path: route.path, query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { data, status, error } = await useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  watch: [page, sort],
+  default: () => ({ items: [], total: 0 })
+})
+
+const orders = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currency.format(row.original.total)
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString('en-US')
+  }
+]
+</script>
+
+<template>
+  <div class="mx-auto max-w-6xl space-y-6 p-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-muted">Sort by</span>
+        <USelect v-model="sort" :items="sortItems" class="w-48" />
+      </div>
+    </div>
+
+    <p v-if="error" class="text-sm text-error">
+      Failed to load orders: {{ error.message }}
+    </p>
+
+    <UTable
+      :data="orders"
+      :columns="columns"
+      :loading="status === 'pending'"
+      class="rounded-lg border border-default"
+    />
+
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <span class="text-sm text-muted">{{ total }} orders</span>
+      <UPagination v-model:page="page" :items-per-page="PAGE_SIZE" :total="total" />
+    </div>
+  </div>
+</template>
+=== FILE: app/plugins/api.ts ===
+/**
+ * Adds `Authorization: Bearer <token>` to same-origin requests to /api.
+ * Covers `$fetch` and `useFetch` / `useAsyncData`, which call `globalThis.$fetch`.
+ *
+ * Client only: on the server `globalThis.$fetch` is shared by concurrent SSR requests,
+ * so patching it there would send one user's token on another user's request.
+ * Server-side calls that need the session cookie should use `useRequestFetch()`.
+ */
+function isApiRequest(request: RequestInfo | URL): boolean {
+  const href = typeof request === 'string'
+    ? request
+    : request instanceof URL
+      ? request.href
+      : request.url
+
+  try {
+    const url = new URL(href, window.location.href)
+    return url.origin === window.location.origin
+      && (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+  } catch {
+    return false
+  }
+}
+
+export default defineNuxtPlugin(() => {
+  if (!import.meta.client) return
+
+  const token = useCookie<string | null>('token')
+
+  const apiFetch = globalThis.$fetch.create({
+    onRequest({ request, options }) {
+      if (!token.value || !isApiRequest(request)) return
+
+      const headers = new Headers(options.headers)
+      if (!headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token.value}`)
+      }
+      options.headers = headers
+    }
+  })
+
+  globalThis.$fetch = apiFetch
+})
+=== END ===

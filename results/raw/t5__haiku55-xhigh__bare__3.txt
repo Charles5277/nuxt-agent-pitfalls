@@ -1,0 +1,154 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const SIGNATURE_TOLERANCE_SECONDS = 300
+
+interface StripeEvent {
+  id: string
+  object: 'event'
+  type: string
+  created: number
+  data: { object: Record<string, unknown> }
+}
+
+interface StripeCheckoutSession {
+  id: string
+  object: 'checkout.session'
+  payment_status: 'paid' | 'unpaid' | 'no_payment_required'
+  customer?: string | null
+  metadata?: Record<string, string> | null
+  [key: string]: unknown
+}
+
+function verifyStripeSignature(payload: Buffer, header: string, secret: string): boolean {
+  let timestampRaw: string | undefined
+  const signatures: string[] = []
+
+  for (const part of header.split(',')) {
+    const separator = part.indexOf('=')
+    if (separator === -1) continue
+    const key = part.slice(0, separator).trim()
+    const value = part.slice(separator + 1).trim()
+    if (key === 't') {
+      timestampRaw = value
+    }
+    else if (key === 'v1') {
+      signatures.push(value)
+    }
+  }
+
+  if (!timestampRaw || !/^\d+$/.test(timestampRaw) || signatures.length === 0) {
+    return false
+  }
+
+  const timestamp = Number(timestampRaw)
+  const ageSeconds = Math.abs(Math.floor(Date.now() / 1000) - timestamp)
+  if (ageSeconds > SIGNATURE_TOLERANCE_SECONDS) {
+    return false
+  }
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestampRaw}.`)
+    .update(payload)
+    .digest()
+
+  return signatures.some((signature) => {
+    if (!/^[0-9a-f]+$/i.test(signature) || signature.length !== expected.length * 2) {
+      return false
+    }
+    return timingSafeEqual(Buffer.from(signature, 'hex'), expected)
+  })
+}
+
+async function fulfillCheckoutSession(session: StripeCheckoutSession): Promise<void> {
+  // Stripe redelivers events on failure, so fulfillment must be idempotent on session.id.
+  console.info('[stripe] fulfilling checkout session', {
+    sessionId: session.id,
+    customer: session.customer ?? null,
+  })
+}
+
+async function handleCheckoutSessionCompleted(session: StripeCheckoutSession): Promise<void> {
+  if (session.payment_status === 'unpaid') {
+    // Delayed payment methods are fulfilled on checkout.session.async_payment_succeeded.
+    return
+  }
+  await fulfillCheckoutSession(session)
+}
+
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event)
+  const secret = config.stripeWebhookSecret
+
+  if (!secret) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook secret is not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  const payload = await readRawBody(event, false)
+  if (!payload || payload.length === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty request body' })
+  }
+
+  if (!verifyStripeSignature(payload, signature, secret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid Stripe signature' })
+  }
+
+  let stripeEvent: StripeEvent
+  try {
+    stripeEvent = JSON.parse(payload.toString('utf8')) as StripeEvent
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Malformed event payload' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed':
+      await handleCheckoutSessionCompleted(stripeEvent.data.object as StripeCheckoutSession)
+      break
+    default:
+      break
+  }
+
+  return { received: true }
+})
+
+=== FILE: nuxt.config.ts ===
+const isDev = process.env.NODE_ENV !== 'production'
+
+const contentSecurityPolicy: Record<string, string[]> = {
+  'default-src': ["'self'"],
+  'connect-src': ["'self'"],
+  'img-src': ["'self'", 'data:'],
+}
+
+if (isDev) {
+  // Vite HMR opens a websocket to the dev server and injects <style> tags for CSS updates.
+  contentSecurityPolicy['connect-src'] = ["'self'", 'ws:', 'wss:']
+  contentSecurityPolicy['style-src'] = ["'self'", "'unsafe-inline'"]
+}
+
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+  runtimeConfig: {
+    stripeWebhookSecret: '',
+  },
+  security: {
+    rateLimiter: false,
+    headers: { contentSecurityPolicy },
+    csrf: true,
+  },
+  routeRules: {
+    '/api/webhooks/**': {
+      security: {
+        csrf: false,
+        xssValidator: false,
+      },
+    },
+  },
+})
+=== END ===

@@ -1,0 +1,76 @@
+=== FILE: app/components/DeleteUserModal.vue ===
+<script setup lang="ts">
+const props = defineProps<{
+  open: boolean
+  user: { id: string, name: string }
+}>()
+
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+  confirm: [userId: string]
+}>()
+
+const confirmation = ref('')
+
+const isConfirmed = computed(() => confirmation.value === props.user.name)
+
+// The modal content unmounts on close, but this ref lives in the component, so reset it manually.
+watch(() => props.open, (isOpen) => {
+  if (!isOpen) {
+    confirmation.value = ''
+  }
+})
+
+function cancel() {
+  emit('update:open', false)
+}
+
+function onDelete() {
+  if (!isConfirmed.value) return
+  emit('confirm', props.user.id)
+  emit('update:open', false)
+}
+</script>
+
+<template>
+  <UModal
+    :open="open"
+    title="Delete user"
+    :ui="{ content: 'max-w-2xl', footer: 'justify-end' }"
+    @update:open="emit('update:open', $event)"
+  >
+    <template #body>
+      <div class="space-y-4">
+        <p class="text-sm text-default">
+          You are about to permanently delete <span class="font-semibold text-highlighted">{{ user.name }}</span>.
+          All data associated with this user will be lost, and this action cannot be undone.
+        </p>
+
+        <UFormField :label="`Type ${user.name} to confirm`" name="confirmation">
+          <UInput
+            v-model="confirmation"
+            :placeholder="user.name"
+            autocomplete="off"
+            class="w-full"
+          />
+        </UFormField>
+      </div>
+    </template>
+
+    <template #footer>
+      <UButton
+        label="Cancel"
+        color="neutral"
+        variant="outline"
+        @click="cancel"
+      />
+      <UButton
+        label="Delete"
+        color="error"
+        :disabled="!isConfirmed"
+        @click="onDelete"
+      />
+    </template>
+  </UModal>
+</template>
+=== END ===

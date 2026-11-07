@@ -1,0 +1,128 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+const SORT_FIELDS = ['createdAt', 'total', 'status'] as const
+type SortField = (typeof SORT_FIELDS)[number]
+
+function isSortField(value: unknown): value is SortField {
+  return typeof value === 'string' && (SORT_FIELDS as readonly string[]).includes(value)
+}
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed<number>({
+  get() {
+    const parsed = Number(route.query.page)
+    return Number.isInteger(parsed) && parsed >= 1 ? parsed : 1
+  },
+  set(value) {
+    router.push({ path: route.path, query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed<SortField>({
+  get() {
+    const raw = route.query.sort
+    return isSortField(raw) ? raw : 'createdAt'
+  },
+  set(value) {
+    router.push({ path: route.path, query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const sortItems: { label: string, value: SortField }[] = [
+  { label: 'Date created', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Status', value: 'status' }
+]
+
+const query = computed(() => ({ page: page.value, sort: sort.value }))
+
+const { data, status } = await useFetch<OrdersResponse>('/api/orders', {
+  query,
+  default: () => ({ items: [], total: 0 })
+})
+
+const rows = computed<Order[]>(() => data.value?.items ?? [])
+const total = computed<number>(() => data.value?.total ?? 0)
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' }
+]
+
+useHead({ title: 'Orders' })
+</script>
+
+<template>
+  <UContainer class="py-8">
+    <div class="mb-6 flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+      <USelect v-model="sort" :items="sortItems" class="w-48" />
+    </div>
+
+    <UTable :data="rows" :columns="columns" :loading="status === 'pending'" />
+
+    <div class="mt-6 flex justify-center">
+      <UPagination v-model:page="page" :total="total" :items-per-page="PAGE_SIZE" />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+// Client-side only. On the server the token is per request, and replacing the
+// global $fetch there would leak one request's token into concurrent requests.
+const API_PATH = /^\/api(\/|$)/
+
+function isApiRequest(request: RequestInfo | URL, origin: string): boolean {
+  const raw = typeof request === 'string'
+    ? request
+    : request instanceof URL
+      ? request.href
+      : request.url
+
+  try {
+    const url = new URL(raw, origin)
+    return url.origin === origin && API_PATH.test(url.pathname)
+  } catch {
+    return false
+  }
+}
+
+export default defineNuxtPlugin(() => {
+  if (!import.meta.client) return
+
+  const token = useCookie<string | null>('token')
+  const origin = window.location.origin
+
+  Object.assign(globalThis, {
+    $fetch: $fetch.create({
+      onRequest({ request, options }) {
+        if (!token.value || !isApiRequest(request, origin)) return
+
+        const headers = new Headers(options.headers)
+        headers.set('Authorization', `Bearer ${token.value}`)
+        options.headers = headers
+      }
+    })
+  })
+})
+=== END ===

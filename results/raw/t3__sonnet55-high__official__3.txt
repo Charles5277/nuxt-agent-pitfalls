@@ -1,0 +1,108 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().pipe(z.email()).max(254).optional()
+  })
+  .strict()
+  .refine(data => data.name !== undefined || data.email !== undefined, {
+    message: 'At least one of name or email is required'
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id || id !== user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, data => bodySchema.safeParse(data))
+  if (!body.success) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid request body',
+      data: body.error.issues
+    })
+  }
+
+  const db = useDB()
+
+  if (body.data.email !== undefined) {
+    const existing = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, body.data.email))
+      .get()
+
+    if (existing && existing.id !== user.id) {
+      throw createError({ statusCode: 409, statusMessage: 'Email already in use' })
+    }
+  }
+
+  const updated = await db
+    .update(users)
+    .set({
+      ...(body.data.name !== undefined && { name: body.data.name }),
+      ...(body.data.email !== undefined && { email: body.data.email })
+    })
+    .where(eq(users.id, user.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role
+    })
+    .get()
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+```
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+// Cache the expensive computation per user (not the whole handler),
+// so authentication always runs and one user's stats are never served to another.
+const getCachedUserStats = defineCachedFunction(
+  async (userId: string) => {
+    return await computeUserStats(userId)
+  },
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    getKey: (userId: string) => userId
+  }
+)
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  return await getCachedUserStats(user.id)
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  css: ['~/assets/css/main.css'],
+
+  runtimeConfig: {
+    // Under `public`, so it is readable on both server and client.
+    // Override at runtime with NUXT_PUBLIC_API_BASE.
+    public: {
+      apiBase: 'https://api.example.com'
+    }
+  },
+
+  compatibilityDate: '2025-07-15'
+})
+```
+=== END ===

@@ -1,0 +1,188 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 10
+
+const sortOptions = [
+  { label: 'Date', value: 'createdAt' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+const DEFAULT_SORT = sortOptions[0]!.value
+
+const route = useRoute()
+const router = useRouter()
+
+function firstQueryValue(value: unknown): string | undefined {
+  const v = Array.isArray(value) ? value[0] : value
+  return typeof v === 'string' ? v : undefined
+}
+
+const page = computed<number>({
+  get() {
+    const n = Number(firstQueryValue(route.query.page))
+    return Number.isInteger(n) && n > 0 ? n : 1
+  },
+  set(value) {
+    router.push({ query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed<string>({
+  get() {
+    const value = firstQueryValue(route.query.sort)
+    return sortOptions.some(option => option.value === value) ? value! : DEFAULT_SORT
+  },
+  set(value) {
+    // Changing the sort order restarts from the first page.
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { data, status, error } = await useFetch<OrdersResponse>('/api/orders', {
+  query: { page, sort },
+  default: () => ({ items: [], total: 0 })
+})
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' },
+  { accessorKey: 'createdAt', header: 'Created' }
+]
+
+function formatTotal(value: number) {
+  return Number(value).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+function formatDate(value: string) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-xl font-semibold">
+        Orders
+      </h1>
+      <USelect
+        v-model="sort"
+        :items="sortOptions"
+        class="w-56"
+        aria-label="Sort orders"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+    />
+
+    <UTable
+      :data="data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+    >
+      <template #total-cell="{ row }">
+        {{ formatTotal(row.original.total) }}
+      </template>
+      <template #createdAt-cell="{ row }">
+        {{ formatDate(row.original.createdAt) }}
+      </template>
+    </UTable>
+
+    <div class="flex justify-end">
+      <UPagination
+        v-model:page="page"
+        :total="data.total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+export default defineNuxtPlugin({
+  name: 'api-auth',
+  setup() {
+    const token = useCookie<string | null | undefined>('token')
+    const origin = useRequestURL().origin
+
+    function isApiRequest(request: unknown): boolean {
+      let raw: string
+      if (typeof request === 'string') raw = request
+      else if (request instanceof URL) raw = request.href
+      else if (request && typeof (request as Request).url === 'string') raw = (request as Request).url
+      else return false
+
+      try {
+        const url = new URL(raw, origin)
+        return url.origin === origin && /^\/api(\/|$)/.test(url.pathname)
+      } catch {
+        return false
+      }
+    }
+
+    function authHeaders(init: HeadersInit | undefined): Headers | undefined {
+      const value = token.value
+      if (!value) return undefined
+      const headers = new Headers(init)
+      if (!headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${value}`)
+      }
+      return headers
+    }
+
+    if (import.meta.client) {
+      // The browser has a single app instance, so replacing the global $fetch is safe.
+      // useFetch/useAsyncData resolve globalThis.$fetch at call time, so they pick this up too.
+      globalThis.$fetch = $fetch.create({
+        onRequest({ request, options }) {
+          if (!isApiRequest(request)) return
+          const headers = authHeaders(options.headers as HeadersInit | undefined)
+          if (headers) options.headers = headers
+        }
+      })
+      return
+    }
+
+    // On the server the global $fetch is shared between concurrent requests, so it must
+    // not capture a per-request cookie. Wrap the per-request event.$fetch instead
+    // (this is what useRequestFetch()/useFetch use for local requests during SSR).
+    const event = useRequestEvent()
+    if (!event) return
+
+    const original = event.$fetch as typeof globalThis.$fetch
+    const wrapped = ((request: any, options?: any) => {
+      if (!isApiRequest(request)) return original(request, options)
+      const headers = authHeaders(options?.headers)
+      return original(request, headers ? { ...options, headers } : options)
+    }) as typeof globalThis.$fetch
+
+    event.$fetch = Object.assign(wrapped, original)
+  }
+})
+=== END ===

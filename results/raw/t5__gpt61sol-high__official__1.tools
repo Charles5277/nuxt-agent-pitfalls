@@ -1,0 +1,1 @@
+{"shell:.*' -g 'package.json' -g '*stripe*' -g '*security*' -g 'pnpm-lock.yaml' -g '\"'!node_modules'\"' -g '\"'!pnpm-lock.yaml'\"'\"": 1}

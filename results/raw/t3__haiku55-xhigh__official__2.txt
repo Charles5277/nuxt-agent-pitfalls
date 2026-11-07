@@ -1,0 +1,107 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { and, eq, ne } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required').max(100).optional(),
+    email: z.string().trim().toLowerCase().email('Invalid email address').max(254).optional(),
+  })
+  .strict()
+  .refine(data => Object.keys(data).length > 0, {
+    message: 'At least one field (name or email) is required',
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id || id !== user.id) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden',
+      message: 'You can only update your own profile',
+    })
+  }
+
+  const body = await readValidatedBody(event, (input) => {
+    const result = updateProfileSchema.safeParse(input)
+    if (!result.success) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid profile data',
+        data: result.error.issues,
+      })
+    }
+    return result.data
+  })
+
+  const db = useDB()
+
+  if (body.email) {
+    const [conflict] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.email, body.email), ne(users.id, user.id)))
+      .limit(1)
+
+    if (conflict) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Conflict',
+        message: 'Email is already in use',
+      })
+    }
+  }
+
+  const [updated] = await db
+    .update(users)
+    .set(body)
+    .where(eq(users.id, user.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+
+  if (!updated) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Not Found',
+      message: 'User not found',
+    })
+  }
+
+  return updated
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+// Cached per user: the key is the user id, so one user's stats are never served to another.
+const getCachedUserStats = defineCachedFunction(
+  (userId: string) => computeUserStats(userId),
+  {
+    name: 'user-dashboard-stats',
+    maxAge: 60,
+    getKey: (userId: string) => userId,
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+  return getCachedUserStats(user.id)
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+  runtimeConfig: {
+    // Public so both server and browser code can read useRuntimeConfig().public.apiBase.
+    // Override at runtime with the NUXT_PUBLIC_API_BASE environment variable.
+    public: {
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+=== END ===

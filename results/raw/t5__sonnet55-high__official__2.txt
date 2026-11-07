@@ -1,0 +1,150 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import type { H3Event } from 'h3'
+
+const SIGNATURE_TOLERANCE_SECONDS = 300
+
+function verifyStripeSignature(payload: string, header: string, secret: string): boolean {
+  const parts = header.split(',').map(p => p.trim())
+  const timestamp = parts.find(p => p.startsWith('t='))?.slice(2)
+  const signatures = parts.filter(p => p.startsWith('v1=')).map(p => p.slice(3))
+
+  if (!timestamp || signatures.length === 0) return false
+
+  const ts = Number(timestamp)
+  if (!Number.isFinite(ts)) return false
+  if (Math.abs(Math.floor(Date.now() / 1000) - ts) > SIGNATURE_TOLERANCE_SECONDS) return false
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestamp}.${payload}`, 'utf8')
+    .digest()
+
+  return signatures.some((sig) => {
+    if (!/^[0-9a-f]+$/i.test(sig) || sig.length !== expected.length * 2) return false
+    return timingSafeEqual(expected, Buffer.from(sig, 'hex'))
+  })
+}
+
+interface StripeCheckoutSession {
+  id: string
+  payment_status?: string
+  customer?: string | null
+  customer_email?: string | null
+  client_reference_id?: string | null
+  amount_total?: number | null
+  currency?: string | null
+  metadata?: Record<string, string> | null
+}
+
+interface StripeEvent {
+  id: string
+  type: string
+  data: { object: unknown }
+}
+
+async function handleCheckoutSessionCompleted(_event: H3Event, session: StripeCheckoutSession) {
+  // Delayed payment methods may complete the session before funds are received.
+  if (session.payment_status && session.payment_status !== 'paid') {
+    console.info(`[stripe] session ${session.id} completed with payment_status=${session.payment_status}; awaiting payment`)
+    return
+  }
+
+  // TODO: fulfil the order (idempotently, keyed on session.id).
+  console.info(`[stripe] checkout.session.completed ${session.id}`)
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Webhook secret not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing stripe-signature header' })
+  }
+
+  const rawBody = await readRawBody(event, 'utf8')
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty request body' })
+  }
+
+  if (!verifyStripeSignature(rawBody, signature, stripeWebhookSecret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid signature' })
+  }
+
+  let stripeEvent: StripeEvent
+  try {
+    stripeEvent = JSON.parse(rawBody) as StripeEvent
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid JSON payload' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed':
+      await handleCheckoutSessionCompleted(event, stripeEvent.data.object as StripeCheckoutSession)
+      break
+    default:
+      break
+  }
+
+  return { received: true }
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Set via NUXT_STRIPE_WEBHOOK_SECRET
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  routeRules: {
+    // Stripe calls this server-to-server: no CSRF token or cookie, and the
+    // body must stay untouched for signature verification.
+    '/api/webhooks/stripe': {
+      security: {
+        csrf: false,
+        xssValidator: false,
+      },
+    },
+  },
+
+  // Development only: allow the Vite HMR websocket (and local dev server
+  // connections) without loosening the production CSP.
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          'connect-src': [
+            "'self'",
+            'ws://localhost:*',
+            'ws://127.0.0.1:*',
+            'ws://[::1]:*',
+            'http://localhost:*',
+            'http://127.0.0.1:*',
+          ],
+        },
+      },
+    },
+  },
+})
+```
+=== END ===

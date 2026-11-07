@@ -1,0 +1,1 @@
+{"shell: 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*order*' -g 'api.ts' -g '*nuxt-ui*' -g 'tsconfig.json' | head -60\"": 1, "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1, "nuxt-ui:get-component-metadata": 3, "nuxt:get-documentation-page": 1}

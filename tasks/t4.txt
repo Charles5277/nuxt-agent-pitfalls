@@ -1,0 +1,7 @@
+Project: Nuxt 4 + @nuxt/ui v4 + Nitro, TypeScript. Write the complete file contents directly. Do not ask questions and do not explain your design.
+Output format (follow strictly): start each file with a line of its own `=== FILE: <relative path> ===`, followed by the full file content; after the last file, a line of its own `=== END ===`.
+Deployment: Cloudflare Workers. Database: NuxtHub (@nuxthub/core v0.10) D1 + Drizzle. D1 database id: 0f1e2d3c-aaaa-bbbb-cccc-123456789abc. The team develops locally with `pnpm dev`.
+Existing Drizzle schema: projects(id, name), members(id, projectId), tasks(id, projectId). Get drizzle via `import { db, schema } from 'hub:db'`.
+
+Task 1: write nuxt.config.ts (modules and the hub database configuration).
+Task 2: write server/api/stats.get.ts: return { id, name, memberCount, taskCount } for every project in one query, using drizzle subqueries to count members and tasks separately, then join them back to projects.

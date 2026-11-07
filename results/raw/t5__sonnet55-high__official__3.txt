@@ -1,0 +1,146 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import type { H3Event } from 'h3'
+
+const TOLERANCE_SECONDS = 300
+
+interface StripeEvent {
+  id: string
+  type: string
+  data: { object: Record<string, any> }
+}
+
+function parseSignatureHeader(header: string) {
+  let timestamp: number | undefined
+  const signatures: string[] = []
+
+  for (const part of header.split(',')) {
+    const idx = part.indexOf('=')
+    if (idx === -1) continue
+    const key = part.slice(0, idx).trim()
+    const value = part.slice(idx + 1).trim()
+    if (key === 't') timestamp = Number(value)
+    else if (key === 'v1') signatures.push(value)
+  }
+
+  return { timestamp, signatures }
+}
+
+function verifyStripeSignature(rawBody: string, header: string, secret: string) {
+  const { timestamp, signatures } = parseSignatureHeader(header)
+  if (!timestamp || !Number.isFinite(timestamp) || signatures.length === 0) return false
+
+  const age = Math.abs(Math.floor(Date.now() / 1000) - timestamp)
+  if (age > TOLERANCE_SECONDS) return false
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestamp}.${rawBody}`, 'utf8')
+    .digest()
+
+  return signatures.some((sig) => {
+    if (!/^[0-9a-f]+$/i.test(sig) || sig.length % 2 !== 0) return false
+    const candidate = Buffer.from(sig, 'hex')
+    return candidate.length === expected.length && timingSafeEqual(candidate, expected)
+  })
+}
+
+async function handleCheckoutSessionCompleted(_event: H3Event, session: Record<string, any>) {
+  // TODO: fulfil the order (idempotently - Stripe may deliver the same event more than once).
+  console.info('[stripe] checkout.session.completed', {
+    sessionId: session.id,
+    customer: session.customer,
+    paymentStatus: session.payment_status,
+    clientReferenceId: session.client_reference_id,
+  })
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook secret is not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing stripe-signature header' })
+  }
+
+  // The signature is computed over the exact raw payload, so do not parse it first.
+  const rawBody = await readRawBody(event, 'utf8')
+  if (!rawBody) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing request body' })
+  }
+
+  if (!verifyStripeSignature(rawBody, signature, stripeWebhookSecret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid signature' })
+  }
+
+  let stripeEvent: StripeEvent
+  try {
+    stripeEvent = JSON.parse(rawBody)
+  }
+  catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid JSON payload' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed':
+      await handleCheckoutSessionCompleted(event, stripeEvent.data.object)
+      break
+    default:
+      break
+  }
+
+  return { received: true }
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Set via NUXT_STRIPE_WEBHOOK_SECRET
+    stripeWebhookSecret: '',
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  routeRules: {
+    // Server-to-server webhook: authenticated by the Stripe signature, not by a CSRF token,
+    // and the raw body must reach the handler untouched.
+    '/api/webhooks/stripe': {
+      security: {
+        csrf: false,
+        xssValidator: false,
+      },
+    },
+  },
+
+  // Development only: production keeps the strict baseline CSP.
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          // Vite HMR uses a WebSocket (ws://localhost:24678 by default).
+          'connect-src': ['ws://localhost:*', 'ws://127.0.0.1:*', 'http://localhost:*'],
+          // Would rewrite http://localhost asset/WebSocket requests to https.
+          'upgrade-insecure-requests': false,
+        },
+      },
+    },
+  },
+})
+```
+=== END ===

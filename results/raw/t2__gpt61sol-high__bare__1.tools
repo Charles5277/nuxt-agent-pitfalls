@@ -1,0 +1,1 @@
+{"shell:/zsh -lc \"pwd && rg --files -g 'package.json' -g 'AGENTS.md' -g 'nuxt.config.*' -g 'api.ts' -g 'orders.vue' -g '*lock*'\"": 1}

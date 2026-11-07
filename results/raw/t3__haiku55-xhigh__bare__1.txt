@@ -1,0 +1,89 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { and, eq, ne } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().email().max(254).optional(),
+  })
+  .refine(({ name, email }) => name !== undefined || email !== undefined, {
+    message: 'At least one of name or email must be provided',
+  })
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id || id !== session.user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, (input) => updateProfileSchema.parse(input))
+  const db = useDB()
+
+  if (body.email !== undefined) {
+    const [conflict] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.email, body.email), ne(users.id, id)))
+      .limit(1)
+
+    if (conflict) {
+      throw createError({ statusCode: 409, statusMessage: 'Email already in use' })
+    }
+  }
+
+  const patch: { name?: string; email?: string } = {}
+  if (body.name !== undefined) patch.name = body.name
+  if (body.email !== undefined) patch.email = body.email
+
+  const [updated] = await db
+    .update(users)
+    .set(patch)
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'Not Found' })
+  }
+
+  return updated
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+export default defineCachedEventHandler(
+  async (event) => {
+    const session = await requireUserSession(event)
+    const stats = await computeUserStats(session.user.id)
+
+    setResponseHeader(event, 'cache-control', 'private, max-age=60')
+    return stats
+  },
+  {
+    name: 'me-dashboard',
+    maxAge: 60,
+    swr: false,
+    getKey: async (event) => {
+      const session = await getUserSession(event)
+      return session.user ? `user:${session.user.id}` : 'anonymous'
+    },
+  },
+)
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  compatibilityDate: '2026-11-07',
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+  runtimeConfig: {
+    public: {
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.example.com',
+    },
+  },
+})
+=== END ===

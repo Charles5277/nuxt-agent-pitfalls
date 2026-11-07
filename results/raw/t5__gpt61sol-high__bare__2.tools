@@ -1,0 +1,1 @@
+{"shell:ENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*stripe*' -g 'pnpm-lock.yaml' -g '\"'!node_modules'\"' -g '\"'!vendor'\"'\"": 1}

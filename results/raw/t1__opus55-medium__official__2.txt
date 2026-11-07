@@ -1,0 +1,79 @@
+=== FILE: app/components/DeleteUserModal.vue ===
+<script setup lang="ts">
+const props = defineProps<{
+  open: boolean
+  user: { id: string; name: string }
+}>()
+
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+  confirm: [user: { id: string; name: string }]
+}>()
+
+const confirmation = ref('')
+
+const isMatch = computed(() => confirmation.value === props.user.name)
+
+watch(
+  () => props.open,
+  (value) => {
+    if (value) {
+      confirmation.value = ''
+    }
+  }
+)
+
+function close() {
+  emit('update:open', false)
+}
+
+function onConfirm() {
+  if (!isMatch.value) return
+  emit('confirm', props.user)
+}
+</script>
+
+<template>
+  <UModal
+    :open="open"
+    title="Delete user"
+    :ui="{ content: 'max-w-2xl' }"
+    @update:open="emit('update:open', $event)"
+  >
+    <template #body>
+      <div class="space-y-4">
+        <p class="text-sm text-muted">
+          You are about to permanently delete the user
+          <span class="font-semibold text-highlighted">{{ user.name }}</span>.
+          This action cannot be undone. To confirm, type the user's name below.
+        </p>
+
+        <UInput
+          v-model="confirmation"
+          :placeholder="user.name"
+          autocomplete="off"
+          class="w-full"
+          @keydown.enter.prevent="onConfirm"
+        />
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          label="Cancel"
+          color="neutral"
+          variant="outline"
+          @click="close"
+        />
+        <UButton
+          label="Delete"
+          color="error"
+          :disabled="!isMatch"
+          @click="onConfirm"
+        />
+      </div>
+    </template>
+  </UModal>
+</template>
+=== END ===

@@ -1,0 +1,11 @@
+Project: Nuxt 4 + @nuxt/ui v4 + Nitro, TypeScript. Write the complete file contents directly. Do not ask questions and do not explain your design.
+Output format (follow strictly): start each file with a line of its own `=== FILE: <relative path> ===`, followed by the full file content; after the last file, a line of its own `=== END ===`.
+Existing: server/db/schema.ts (Drizzle, sqlite):
+```ts
+export const users = sqliteTable('users', { id: text('id').primaryKey(), name: text('name').notNull(), email: text('email').notNull(), role: text('role').notNull().default('member'), passwordHash: text('password_hash').notNull(), createdAt: integer('created_at', { mode: 'timestamp' }) })
+```
+`useDB()` returns the drizzle instance. Auth uses nuxt-auth-utils (`requireUserSession(event)` returns { user: { id, role } }).
+
+Task 1: write server/api/users/[id].patch.ts: a user updates their own profile (name, email). Validate with readValidatedBody + zod, then update with drizzle.
+Task 2: write server/api/me/dashboard.get.ts: returns the signed-in user's own stats (assume an existing async function computeUserStats(userId: string), which is slow). Add Nitro caching for 60 seconds to reduce load.
+Task 3: write the runtimeConfig in nuxt.config.ts: add apiBase (default 'https://api.example.com', overridable via environment variable). Both server code and browser code need to read it.

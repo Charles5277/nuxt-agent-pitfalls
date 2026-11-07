@@ -1,0 +1,105 @@
+=== FILE: server/api/users/[id].patch.ts ===
+```ts
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required').max(100).optional(),
+    email: z.string().trim().toLowerCase().email('Invalid email address').max(254).optional(),
+  })
+  .strict()
+  .refine((value) => value.name !== undefined || value.email !== undefined, {
+    message: 'At least one of name or email must be provided',
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing user id' })
+  }
+
+  // Users may only update their own profile.
+  if (id !== user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, (input) => {
+    const result = bodySchema.safeParse(input)
+    if (!result.success) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid request body',
+        data: result.error.issues,
+      })
+    }
+    return result.data
+  })
+
+  const db = useDB()
+
+  const [updated] = await db
+    .update(users)
+    .set({
+      ...(body.name !== undefined && { name: body.name }),
+      ...(body.email !== undefined && { email: body.email }),
+    })
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+```
+=== FILE: server/api/me/dashboard.get.ts ===
+```ts
+// Authentication runs on every request; only the slow computation is cached,
+// keyed per user so one user's stats are never served to another.
+const getCachedUserStats = defineCachedFunction(
+  async (userId: string) => {
+    return await computeUserStats(userId)
+  },
+  {
+    name: 'user-stats',
+    group: 'dashboard',
+    maxAge: 60,
+    getKey: (userId: string) => userId,
+  },
+)
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  return await getCachedUserStats(user.id)
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+// https://nuxt.com/docs/api/configuration/nuxt-config
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  devtools: { enabled: true },
+
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  runtimeConfig: {
+    // Keys under `public` are exposed to both server and browser.
+    // Override at runtime with the NUXT_PUBLIC_API_BASE environment variable.
+    public: {
+      apiBase: 'https://api.example.com',
+    },
+  },
+})
+```
+=== END ===

@@ -1,0 +1,162 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+// Match these fields and the fixed page size to the API contract.
+interface Order {
+  id: string | number
+  createdAt: string
+  status: string
+  total: number
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 10
+
+const sortItems = [
+  { label: 'Date', value: 'createdAt' },
+  { label: 'Order ID', value: 'id' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order ID' },
+  { accessorKey: 'createdAt', header: 'Date' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'total', header: 'Total' }
+]
+
+const route = useRoute()
+const { $api } = useNuxtApp()
+
+const page = computed({
+  get() {
+    const raw = Array.isArray(route.query.page)
+      ? route.query.page[0]
+      : route.query.page
+    const value = Number(raw)
+
+    return Number.isSafeInteger(value) && value > 0 ? value : 1
+  },
+  set(value: number) {
+    void navigateTo({
+      path: route.path,
+      query: { ...route.query, page: String(value), sort: sort.value },
+      hash: route.hash
+    })
+  }
+})
+
+const sort = computed({
+  get() {
+    const raw = Array.isArray(route.query.sort)
+      ? route.query.sort[0]
+      : route.query.sort
+
+    return sortItems.find(item => item.value === raw)?.value ?? 'createdAt'
+  },
+  set(value: string) {
+    if (value === sort.value) return
+
+    void navigateTo({
+      path: route.path,
+      query: { ...route.query, page: '1', sort: value },
+      hash: route.hash
+    })
+  }
+})
+
+const query = computed(() => ({
+  page: page.value,
+  sort: sort.value
+}))
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>(
+  '/api/orders',
+  {
+    $fetch: $api,
+    query,
+    default: () => ({ items: [], total: 0 })
+  }
+)
+</script>
+
+<template>
+  <main class="space-y-6 p-6">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Orders</h1>
+
+      <UFormField label="Sort by" name="sort">
+        <USelect
+          v-model="sort"
+          :items="sortItems"
+          class="w-48"
+        />
+      </UFormField>
+    </div>
+
+    <div v-if="error" role="alert" class="space-y-3">
+      <p class="text-error">Unable to load orders.</p>
+      <UButton label="Retry" @click="refresh()" />
+    </div>
+
+    <UTable
+      v-else
+      :data="data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+      :pagination-options="{ manualPagination: true }"
+      :sorting-options="{ manualSorting: true }"
+      empty="No orders found."
+    />
+
+    <UPagination
+      v-model:page="page"
+      :total="data.total"
+      :items-per-page="PAGE_SIZE"
+      class="flex justify-end"
+    />
+  </main>
+</template>
+=== FILE: app/plugins/api.ts ===
+import { withBase } from 'ufo'
+
+// All application API calls must use $api, or useFetch with { $fetch: $api }.
+// Nuxt does not support globally configuring its built-in $fetch.
+// Native fetch, independent clients, and Nitro handlers need separate integration.
+// See [Nuxt documentation](https://nuxt.com/docs/4.x/guide/recipes/custom-usefetch).
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null>('token')
+  const origin = useRequestURL().origin
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      const target = typeof request === 'string'
+        ? withBase(request, options.baseURL || '/')
+        : request.url
+      const url = new URL(target, origin)
+
+      if (
+        url.origin === origin
+        && (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+        && token.value
+      ) {
+        const headers = new Headers(options.headers)
+        headers.set('Authorization', `Bearer ${token.value}`)
+        options.headers = headers
+      }
+    }
+  })
+
+  return {
+    provide: {
+      api
+    }
+  }
+})
+=== END ===

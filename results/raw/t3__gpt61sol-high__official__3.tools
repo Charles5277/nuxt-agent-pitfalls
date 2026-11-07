@@ -1,0 +1,1 @@
+{"shell:&& rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*stats*' -g '*db*' -g '*dashboard*' -g '*schema*'\"": 1, "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*stats*' -g '*schema*'\"": 1}

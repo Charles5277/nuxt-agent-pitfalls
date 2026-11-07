@@ -1,0 +1,107 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { and, eq, ne } from 'drizzle-orm'
+import { z } from 'zod'
+import { users } from '../../db/schema'
+
+const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long').optional(),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email('Invalid email address')
+      .max(254, 'Email is too long')
+      .optional(),
+  })
+  .refine(data => data.name !== undefined || data.email !== undefined, {
+    message: 'At least one of name or email must be provided',
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id || id !== user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, (input) => {
+    const parsed = updateProfileSchema.safeParse(input)
+    if (!parsed.success) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid request body',
+        data: parsed.error.issues.map(issue => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+        })),
+      })
+    }
+    return parsed.data
+  })
+
+  const db = useDB()
+
+  if (body.email !== undefined) {
+    const [conflict] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.email, body.email), ne(users.id, user.id)))
+      .limit(1)
+
+    if (conflict) {
+      throw createError({ statusCode: 409, statusMessage: 'Email is already in use' })
+    }
+  }
+
+  const updates: Partial<typeof users.$inferInsert> = {}
+  if (body.name !== undefined) updates.name = body.name
+  if (body.email !== undefined) updates.email = body.email
+
+  const [updated] = await db
+    .update(users)
+    .set(updates)
+    .where(eq(users.id, user.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+export default defineCachedEventHandler(
+  async (event) => {
+    const { user } = await requireUserSession(event)
+    return computeUserStats(user.id)
+  },
+  {
+    name: 'me-dashboard',
+    maxAge: 60,
+    swr: false,
+    getKey: async (event) => {
+      const session = await getUserSession(event)
+      return `user:${session.user?.id ?? 'anonymous'}`
+    },
+  },
+)
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+  runtimeConfig: {
+    public: {
+      // Override at deploy/run time with the NUXT_PUBLIC_API_BASE environment variable
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.example.com',
+    },
+  },
+})
+=== END ===

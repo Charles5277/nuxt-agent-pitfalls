@@ -1,0 +1,291 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+type Order = Record<string, unknown>
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+type SortField = 'id' | 'createdAt' | 'total'
+
+const route = useRoute()
+const router = useRouter()
+const { $api } = useNuxtApp()
+
+// Must match the API's fixed page size.
+const pageSize = 10
+
+const sortOptions: Array<{ label: string; value: SortField }> = [
+  { label: 'Order ID', value: 'id' },
+  { label: 'Created date', value: 'createdAt' },
+  { label: 'Total', value: 'total' }
+]
+
+const page = computed(() => {
+  const value = Array.isArray(route.query.page)
+    ? route.query.page[0]
+    : route.query.page
+
+  const number = Number(value ?? 1)
+
+  return Number.isSafeInteger(number) && number > 0 ? number : 1
+})
+
+const sort = computed<SortField>(() => {
+  const value = Array.isArray(route.query.sort)
+    ? route.query.sort[0]
+    : route.query.sort
+
+  return sortOptions.find(option => option.value === value)?.value ?? 'id'
+})
+
+const query = computed(() => ({
+  page: page.value,
+  sort: sort.value
+}))
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>(
+  '/api/orders',
+  {
+    $fetch: $api,
+    query
+  }
+)
+
+async function changePage(nextPage: number) {
+  if (nextPage === page.value) return
+
+  await router.push({
+    query: {
+      ...route.query,
+      page: String(nextPage),
+      sort: sort.value
+    },
+    hash: route.hash
+  })
+}
+
+async function changeSort(nextSort: SortField) {
+  if (nextSort === sort.value) return
+
+  await router.push({
+    query: {
+      ...route.query,
+      page: '1',
+      sort: nextSort
+    },
+    hash: route.hash
+  })
+}
+</script>
+
+<template>
+  <main class="mx-auto max-w-6xl space-y-6 p-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">
+        Orders
+      </h1>
+
+      <div class="flex items-center gap-3">
+        <label for="orders-sort">Sort by</label>
+        <USelect
+          id="orders-sort"
+          :model-value="sort"
+          :items="sortOptions"
+          class="w-44"
+          @update:model-value="changeSort"
+        />
+      </div>
+    </div>
+
+    <div v-if="error" role="alert" class="space-y-3">
+      <p class="text-error">
+        Orders could not be loaded.
+      </p>
+      <UButton
+        label="Retry"
+        :loading="status === 'pending'"
+        @click="refresh()"
+      />
+    </div>
+
+    <UTable
+      :data="data?.items ?? []"
+      :loading="status === 'pending'"
+      empty="No orders found."
+      :sorting-options="{ manualSorting: true }"
+      :pagination-options="{ manualPagination: true }"
+    />
+
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <p aria-live="polite" class="text-sm text-muted">
+        {{ data?.total ?? 0 }} orders
+      </p>
+
+      <UPagination
+        :page="page"
+        :items-per-page="pageSize"
+        :total="data?.total ?? 0"
+        @update:page="changePage"
+      />
+    </div>
+  </main>
+</template>
+=== FILE: app/plugins/api.ts ===
+import type { NuxtApp } from '#app'
+import type { Ref } from 'vue'
+import {
+  defineNuxtPlugin,
+  tryUseNuxtApp,
+  useCookie,
+  useRequestEvent,
+  useRequestURL
+} from '#app'
+import { withBase } from 'ufo'
+
+interface ApiContext {
+  token: Ref<string | null | undefined>
+  origin: string
+}
+
+type FetchFunction = (...args: never[]) => unknown
+type RequestOptions = RequestInit & { baseURL?: string }
+
+const contexts = new WeakMap<NuxtApp, ApiContext>()
+
+let installed = false
+let browserContext: ApiContext | undefined
+
+function currentContext(): ApiContext | undefined {
+  const app = tryUseNuxtApp()
+  return (app ? contexts.get(app) : undefined) ?? browserContext
+}
+
+function authenticateFetch<T extends FetchFunction>(
+  fetcher: T,
+  resolveContext: () => ApiContext | undefined,
+  defaultBaseURL = ''
+): T {
+  return new Proxy(fetcher, {
+    apply(target, thisArg, args) {
+      const context = resolveContext()
+      const token = context?.token.value
+
+      if (!context || !token) {
+        return Reflect.apply(target, thisArg, args)
+      }
+
+      const [request, options] = args as [
+        string | URL | Request,
+        RequestOptions | undefined
+      ]
+
+      const requestURL = request instanceof Request
+        ? request.url
+        : String(request)
+
+      let url: URL
+
+      try {
+        url = new URL(
+          typeof request === 'string'
+            ? withBase(requestURL, options?.baseURL ?? defaultBaseURL)
+            : requestURL,
+          context.origin
+        )
+      } catch {
+        return Reflect.apply(target, thisArg, args)
+      }
+
+      if (
+        url.origin === context.origin
+        && (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+      ) {
+        const headers = new Headers(
+          options?.headers
+          ?? (request instanceof Request ? request.headers : undefined)
+        )
+
+        headers.set('Authorization', `Bearer ${token}`)
+        args[1] = { ...options, headers }
+      }
+
+      return Reflect.apply(target, thisArg, args)
+    },
+
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver)
+
+      if (property === 'raw' || property === 'native') {
+        return authenticateFetch(
+          value as FetchFunction,
+          resolveContext,
+          property === 'native' ? '' : defaultBaseURL
+        )
+      }
+
+      if (property === 'create') {
+        return (
+          defaults: { baseURL?: string } = {},
+          globalOptions?: unknown
+        ) => {
+          const created = Reflect.apply(value, target, [
+            defaults,
+            globalOptions
+          ]) as T
+
+          return authenticateFetch(
+            created,
+            resolveContext,
+            defaults.baseURL ?? defaultBaseURL
+          )
+        }
+      }
+
+      return value
+    }
+  })
+}
+
+export default defineNuxtPlugin({
+  name: 'api',
+  enforce: 'pre',
+
+  setup(nuxtApp) {
+    const context: ApiContext = {
+      token: useCookie<string | null>('token'),
+      origin: useRequestURL().origin
+    }
+
+    contexts.set(nuxtApp, context)
+
+    if (import.meta.client) {
+      browserContext = context
+    }
+
+    // Global wrappers resolve credentials per invocation, never per SSR user.
+    if (!installed) {
+      globalThis.$fetch = authenticateFetch(globalThis.$fetch, currentContext)
+      globalThis.fetch = authenticateFetch(globalThis.fetch, currentContext)
+      installed = true
+    }
+
+    // Nuxt uses the event's fetcher for relative useFetch calls during SSR.
+    if (import.meta.server) {
+      const event = useRequestEvent()
+
+      if (event) {
+        event.$fetch = authenticateFetch(event.$fetch, () => context)
+        event.fetch = authenticateFetch(event.fetch, () => context)
+      }
+    }
+
+    return {
+      provide: {
+        api: authenticateFetch(globalThis.$fetch, () => context)
+      }
+    }
+  }
+})
+=== END ===

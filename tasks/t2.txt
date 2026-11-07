@@ -1,0 +1,5 @@
+Project: Nuxt 4 + @nuxt/ui v4 + Nitro, TypeScript. Write the complete file contents directly. Do not ask questions and do not explain your design.
+Output format (follow strictly): start each file with a line of its own `=== FILE: <relative path> ===`, followed by the full file content; after the last file, a line of its own `=== END ===`.
+
+Task 1: write app/pages/orders.vue. A server-paginated order list. Data comes from GET /api/orders?page=<n>&sort=<field>, which returns { items: Order[]; total: number }. page and sort live in the route query; refetch whenever the user changes the page or the sort. Use UTable for the list, UPagination for paging, and a USelect for sorting.
+Task 2: write app/plugins/api.ts. Every request in the project that hits /api should automatically send the header Authorization: Bearer <token>, where the token comes from useCookie('token').

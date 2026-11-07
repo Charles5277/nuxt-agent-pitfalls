@@ -1,0 +1,1 @@
+{"shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*schema*' -g 'SKILL.md'\"": 1, "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1, "nuxthub:get-page": 2}

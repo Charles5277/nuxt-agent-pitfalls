@@ -1,0 +1,9 @@
+Project: Nuxt 4 + @nuxt/ui v4 + Nitro, TypeScript. Write the complete file contents directly. Do not ask questions and do not explain your design.
+Output format (follow strictly): start each file with a line of its own `=== FILE: <relative path> ===`, followed by the full file content; after the last file, a line of its own `=== END ===`.
+
+Task: write app/components/DeleteUserModal.vue.
+- Use UModal in controlled mode (props: open, user: { id: string; name: string }; emits update:open and confirm)
+- Title: "Delete user"
+- Content: a warning paragraph (including the user's name) and a UInput; the user must type the exact name before Delete is enabled
+- Two buttons at the bottom: Cancel and Delete (color="error", disabled while the name does not match)
+- This modal should be wider than the default; use max-w-2xl for the width

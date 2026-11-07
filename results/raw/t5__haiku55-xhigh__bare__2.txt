@@ -1,0 +1,132 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const TOLERANCE_SECONDS = 300
+
+interface StripeEvent {
+  id: string
+  type: string
+  data: { object: unknown }
+}
+
+interface CheckoutSession {
+  id: string
+  payment_status: 'paid' | 'unpaid' | 'no_payment_required'
+  amount_total: number | null
+  currency: string | null
+  customer: string | null
+}
+
+function verifyStripeSignature(body: string, header: string, secret: string): boolean {
+  let timestamp: string | undefined
+  const signatures: string[] = []
+
+  for (const element of header.split(',')) {
+    const eq = element.indexOf('=')
+    if (eq === -1) continue
+    const key = element.slice(0, eq).trim()
+    const value = element.slice(eq + 1).trim()
+    if (key === 't') timestamp = value
+    else if (key === 'v1') signatures.push(value)
+  }
+
+  if (!timestamp || signatures.length === 0) return false
+
+  const age = Math.abs(Date.now() / 1000 - Number(timestamp))
+  if (!Number.isFinite(age) || age > TOLERANCE_SECONDS) return false
+
+  const expected = Buffer.from(
+    createHmac('sha256', secret).update(`${timestamp}.${body}`, 'utf8').digest('hex'),
+    'utf8',
+  )
+
+  return signatures.some((sig) => {
+    const candidate = Buffer.from(sig, 'utf8')
+    return candidate.length === expected.length && timingSafeEqual(candidate, expected)
+  })
+}
+
+async function handleCheckoutSessionCompleted(session: CheckoutSession) {
+  if (session.payment_status === 'unpaid') {
+    console.info(
+      `[stripe] checkout session ${session.id} completed without payment; awaiting async payment success`,
+    )
+    return
+  }
+
+  // Fulfill the order here. Stripe retries deliveries, so key any writes on session.id to stay idempotent.
+  console.info(`[stripe] fulfilling checkout session ${session.id}`, {
+    amount: session.amount_total,
+    currency: session.currency,
+    customer: session.customer,
+  })
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook secret is not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  const body = await readRawBody(event, 'utf8')
+  if (!body) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty request body' })
+  }
+
+  if (!verifyStripeSignature(body, signature, stripeWebhookSecret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid signature' })
+  }
+
+  const stripeEvent = JSON.parse(body) as StripeEvent
+
+  if (stripeEvent.type === 'checkout.session.completed') {
+    await handleCheckoutSessionCompleted(stripeEvent.data.object as CheckoutSession)
+  }
+
+  return { received: true }
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+const isDev = process.env.NODE_ENV === 'development'
+
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Server-only. Set via NUXT_STRIPE_WEBHOOK_SECRET.
+    stripeWebhookSecret: '',
+  },
+
+  routeRules: {
+    // Stripe calls these routes server-to-server with a signed raw body:
+    // no CSRF token is sent, and the body must not be inspected or rewritten.
+    '/api/webhooks/**': { security: { csrf: false, xssValidator: false } },
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: isDev
+        ? {
+            // Dev only: Vite HMR needs a websocket and injects inline script/style.
+            'default-src': ["'self'"],
+            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            'style-src': ["'self'", "'unsafe-inline'"],
+            'connect-src': ["'self'", 'ws:', 'wss:'],
+            'img-src': ["'self'", 'data:'],
+          }
+        : { 'default-src': ["'self'"], 'connect-src': ["'self'"], 'img-src': ["'self'", 'data:'] },
+    },
+    csrf: true,
+  },
+})
+```
+=== END ===

@@ -1,0 +1,1 @@
+{"shell:l.d.vue.ts' -g 'Modal.vue' -g 'Modal.d.ts' -g 'nuxt.config.*' -g 'pnpm-lock.yaml' -g 'package-lock.json' -g 'yarn.lock'\"": 1}

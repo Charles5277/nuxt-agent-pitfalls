@@ -1,0 +1,170 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: number | string
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+const DEFAULT_SORT = 'createdAt'
+
+const sortItems = [
+  { label: 'Date', value: 'createdAt' },
+  { label: 'Total', value: 'total' },
+  { label: 'Status', value: 'status' },
+  { label: 'Customer', value: 'customer' }
+]
+
+const route = useRoute()
+const router = useRouter()
+
+function firstQueryValue(value: unknown): string | undefined {
+  const v = Array.isArray(value) ? value[0] : value
+  return typeof v === 'string' ? v : undefined
+}
+
+const page = computed<number>({
+  get() {
+    const n = Number.parseInt(firstQueryValue(route.query.page) ?? '1', 10)
+    return Number.isFinite(n) && n > 0 ? n : 1
+  },
+  set(value) {
+    router.push({ query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed<string>({
+  get() {
+    const s = firstQueryValue(route.query.sort)
+    return s && sortItems.some(item => item.value === s) ? s : DEFAULT_SORT
+  },
+  set(value) {
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>('/api/orders', {
+  query: computed(() => ({ page: page.value, sort: sort.value })),
+  default: () => ({ items: [], total: 0 })
+})
+
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currency.format(Number(row.getValue('total')))
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => String(row.getValue('createdAt')).slice(0, 10)
+  }
+]
+</script>
+
+<template>
+  <div class="space-y-4 p-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-xl font-semibold">
+        Orders
+      </h1>
+
+      <USelect
+        v-model="sort"
+        :items="sortItems"
+        class="w-48"
+        aria-label="Sort orders by"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.message"
+    >
+      <template #actions>
+        <UButton
+          color="error"
+          variant="outline"
+          label="Retry"
+          @click="() => refresh()"
+        />
+      </template>
+    </UAlert>
+
+    <UTable
+      :data="data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+    />
+
+    <div
+      v-if="data.total > PAGE_SIZE"
+      class="flex justify-center"
+    >
+      <UPagination
+        v-model:page="page"
+        :total="data.total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </div>
+</template>
+=== FILE: app/plugins/api.ts ===
+import type { FetchContext } from 'ofetch'
+
+const API_PATH = /^\/api(?:[/?#]|$)/
+
+function requestUrl(request: FetchContext['request']): string {
+  if (typeof request === 'string') return request
+  if (request instanceof URL) return request.pathname + request.search
+  return request.url
+}
+
+function readToken(): string | null | undefined {
+  const nuxtApp = tryUseNuxtApp()
+  if (!nuxtApp) return undefined
+  return nuxtApp.runWithContext(() => useCookie<string | null | undefined>('token').value)
+}
+
+export default defineNuxtPlugin({
+  name: 'api-auth',
+  setup() {
+    const flagged = globalThis as typeof globalThis & { __apiAuthPatched?: boolean }
+    if (flagged.__apiAuthPatched) return
+    flagged.__apiAuthPatched = true
+
+    globalThis.$fetch = globalThis.$fetch.create({
+      onRequest({ request, options }) {
+        if (!API_PATH.test(requestUrl(request))) return
+
+        const headers = new Headers(options.headers as HeadersInit | undefined)
+        if (headers.has('Authorization')) return
+
+        const token = readToken()
+        if (!token) return
+
+        headers.set('Authorization', `Bearer ${token}`)
+        options.headers = headers
+      }
+    })
+  }
+})
+=== END ===

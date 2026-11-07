@@ -1,0 +1,176 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+// Stripe's default tolerance for signed-payload timestamps (replay protection).
+const TOLERANCE_SECONDS = 300
+
+interface StripeEvent {
+  id: string
+  object: 'event'
+  type: string
+  created: number
+  livemode: boolean
+  data: { object: unknown }
+}
+
+interface StripeCheckoutSession {
+  id: string
+  object: 'checkout.session'
+  mode: 'payment' | 'subscription' | 'setup'
+  status: 'open' | 'complete' | 'expired' | null
+  payment_status: 'paid' | 'unpaid' | 'no_payment_required'
+  amount_total: number | null
+  currency: string | null
+  client_reference_id: string | null
+  customer: string | null
+  customer_details: { email: string | null } | null
+  metadata: Record<string, string> | null
+}
+
+/**
+ * Verifies the Stripe-Signature header against the raw request body.
+ * Header format: t=<unix seconds>,v1=<hex>[,v1=<hex>][,v0=<hex>]
+ * Signed string: `${t}.${rawBody}`, HMAC-SHA256 keyed with the endpoint secret.
+ */
+function verifyStripeSignature(payload: Buffer, header: string, secret: string): void {
+  let timestamp: number | undefined
+  const signatures: string[] = []
+
+  for (const part of header.split(',')) {
+    const eq = part.indexOf('=')
+    if (eq === -1) continue
+    const key = part.slice(0, eq).trim()
+    const value = part.slice(eq + 1).trim()
+    if (key === 't') timestamp = Number(value)
+    else if (key === 'v1') signatures.push(value)
+  }
+
+  if (timestamp === undefined || !Number.isSafeInteger(timestamp) || signatures.length === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid Stripe-Signature header' })
+  }
+
+  if (Math.abs(Math.floor(Date.now() / 1000) - timestamp) > TOLERANCE_SECONDS) {
+    throw createError({ statusCode: 400, statusMessage: 'Stripe-Signature timestamp outside tolerance' })
+  }
+
+  const expected = Buffer.from(
+    createHmac('sha256', secret).update(`${timestamp}.`).update(payload).digest('hex'),
+    'utf8',
+  )
+
+  const valid = signatures.some((signature) => {
+    const candidate = Buffer.from(signature, 'utf8')
+    return candidate.length === expected.length && timingSafeEqual(candidate, expected)
+  })
+
+  if (!valid) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid Stripe signature' })
+  }
+}
+
+async function fulfillCheckoutSession(eventId: string, session: StripeCheckoutSession): Promise<void> {
+  // Stripe retries failed deliveries and may send the same event more than once.
+  // Make this idempotent (for example a unique constraint on the event or session ID)
+  // before creating orders or granting access.
+  // TODO: implement fulfillment for this application.
+  console.info(`[stripe] event ${eventId}: checkout session ${session.id} is paid`)
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+
+  if (!stripeWebhookSecret) {
+    // Fail closed: never accept events when the secret is missing.
+    console.error('[stripe] NUXT_STRIPE_WEBHOOK_SECRET is not set')
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook is not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+  if (!signature) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing Stripe-Signature header' })
+  }
+
+  // Read the untouched bytes: the signature covers the exact body Stripe sent.
+  const body = await readRawBody(event, false)
+  if (!body?.length) {
+    throw createError({ statusCode: 400, statusMessage: 'Empty request body' })
+  }
+  const payload = typeof body === 'string' ? Buffer.from(body, 'utf8') : body
+
+  verifyStripeSignature(payload, signature, stripeWebhookSecret)
+
+  let stripeEvent: StripeEvent | undefined
+  try {
+    stripeEvent = JSON.parse(payload.toString('utf8')) as StripeEvent
+  } catch {
+    stripeEvent = undefined
+  }
+  if (!stripeEvent || typeof stripeEvent.type !== 'string') {
+    throw createError({ statusCode: 400, statusMessage: 'Malformed event payload' })
+  }
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed':
+    case 'checkout.session.async_payment_succeeded': {
+      const session = stripeEvent.data.object as StripeCheckoutSession
+      // Delayed payment methods complete with payment_status "unpaid"; they are
+      // fulfilled when checkout.session.async_payment_succeeded arrives.
+      if (session.payment_status === 'paid' || session.payment_status === 'no_payment_required') {
+        await fulfillCheckoutSession(stripeEvent.id, session)
+      }
+      break
+    }
+    default:
+      // Acknowledge unhandled event types so Stripe does not retry them.
+      break
+  }
+
+  return { received: true }
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Server-only. Override with NUXT_STRIPE_WEBHOOK_SECRET (whsec_...).
+    stripeWebhookSecret: '',
+  },
+
+  routeRules: {
+    // Stripe calls this endpoint server-to-server: it sends no CSRF token, and the body
+    // must reach the handler untouched for signature verification. Authenticity is
+    // enforced by the Stripe-Signature check in the handler instead.
+    '/api/webhooks/stripe': {
+      security: {
+        csrf: false,
+        xssValidator: false,
+      },
+    },
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'img-src': ["'self'", 'data:'],
+      },
+    },
+    csrf: true,
+  },
+
+  $development: {
+    security: {
+      headers: {
+        contentSecurityPolicy: {
+          // Vite's HMR socket listens on its own port, which 'self' does not match.
+          'connect-src': ['ws:', 'wss:'],
+          // Vite injects CSS as <style> elements at runtime; without this, styles and CSS HMR are blocked.
+          'style-src': ["'self'", "'unsafe-inline'"],
+        },
+      },
+    },
+  },
+})
+=== END ===

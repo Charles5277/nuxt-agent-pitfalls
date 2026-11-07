@@ -1,0 +1,1913 @@
+[
+ {
+  "task": "t1",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "shell:l.d.vue.ts' -g 'Modal.vue' -g 'Modal.d.ts' -g 'nuxt.config.*' -g 'pnpm-lock.yaml' -g 'package-lock.json' -g 'yarn.lock'\"": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1,
+   "nuxt-ui:get-documentation-page": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1,
+   "nuxt-ui:get-component": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "mcp__nuxt-ui__get-component-metadata": 1,
+   "mcp__nuxt-ui__get-component": 2
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "mcp__nuxt-ui__get-component": 2
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "mcp__nuxt-ui__get-component": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "mcp__nuxt-ui__get-component": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {
+   "mcp__nuxt-ui__get-component": 1
+  }
+ },
+ {
+  "task": "t1",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t1",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 1,
+  "checks": {
+   "P_body_in_#body": true,
+   "P_no_stray_children": true,
+   "P_width_via_ui": true,
+   "P_no_class_width": true,
+   "B_title_prop": true,
+   "B_footer_slot": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "shell:/zsh -lc \"pwd && rg --files -g 'package.json' -g 'AGENTS.md' -g 'nuxt.config.*' -g 'api.ts' -g 'orders.vue' -g '*lock*'\"": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "shell:g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*orders*' -g '*api*' -g '*lock*' -g '*types*' -g 'tsconfig.json'\"": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": false
+  },
+  "tools": {
+   "shell: 'package.json' -g '*orders*' -g 'app/plugins/**' -g 'app/pages/**' -g 'node_modules/nuxt/dist/app/composables/fetch.*'\"": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "shell: 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*order*' -g 'api.ts' -g '*nuxt-ui*' -g 'tsconfig.json' | head -60\"": 1,
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1,
+   "nuxt-ui:get-component-metadata": 3,
+   "nuxt:get-documentation-page": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1,
+   "nuxt-ui:get-component": 5
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "Read:<workdir>/package.json": 1,
+   "Read:<workdir>/nuxt.config.ts": 1,
+   "mcp__nuxt-ui__get-component-metadata": 4,
+   "mcp__nuxt__list-documentation-pages": 1,
+   "mcp__nuxt__get-documentation-page": 4,
+   "mcp__nuxt-ui__get-component": 1,
+   "mcp__nuxt-ui__get-documentation-page": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "Skill:nuxt-ui": 1,
+   "mcp__nuxt-ui__get-component-metadata": 3,
+   "mcp__nuxt__get-documentation-page": 3,
+   "Read:<claude-config>/skills/nuxt-ui/references/recipes/data-tables.md": 1,
+   "Read:<claude-config>/skills/nuxt-ui/references/guidelines/conventions.md": 1
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {
+   "mcp__nuxt-ui__get-component": 3
+  }
+ },
+ {
+  "task": "t2",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": true,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t2",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_no_toplevel_await_$fetch": true,
+   "P_key_excludes_page_sort": true,
+   "B_uses_useFetch_or_AsyncData": true,
+   "P_no_global_$fetch_override": false,
+   "B_plugin_uses_create_or_hook": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {
+   "shell:bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'nuxt.config.*' -g '*dashboard*' -g '*schema*' -g '*stats*' -g 'package.json'\"": 1
+  }
+ },
+ {
+  "task": "t3",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {
+   "shell:d && rg --files -g 'package.json' -g 'nuxt.config.*' -g 'AGENTS.md' -g '*stats*' -g '*Stats*' -g 'schema.ts' | head -60\"": 1
+  }
+ },
+ {
+  "task": "t3",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {
+   "shell:&& rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*stats*' -g '*db*' -g '*dashboard*' -g '*schema*'\"": 1,
+   "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*stats*' -g '*schema*'\"": 1
+  }
+ },
+ {
+  "task": "t3",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {
+   "Read:<workdir>/nuxt.config.ts": 1
+  }
+ },
+ {
+  "task": "t3",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t3",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_no_mass_assignment": true,
+   "P_authz_self_only": true,
+   "P_cache_key_has_user": true,
+   "B_has_cache": true,
+   "P_apiBase_public": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g '*config*' -g '*schema*' -g '*lock*'\"": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "shell:\"pwd && rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*schema*' -g 'wrangler*' -g 'pnpm-lock.yaml'\"": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*schema*' -g 'SKILL.md'\"": 1,
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1,
+   "nuxthub:get-page": 2
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxt__get-module": 1,
+   "mcp__nuxthub__get-page": 5,
+   "mcp__nuxt-ui__get-documentation-page": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxt__get-module": 1,
+   "mcp__nuxthub__get-page": 7,
+   "mcp__nuxt-ui__get-documentation-page": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxthub__get-page": 6,
+   "mcp__nuxt__get-deploy-provider": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxthub__get-page": 3
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxthub__get-page": 2
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": true,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxthub__get-page": 4
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t4",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxthub__get-page": 2
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__get-page": 3,
+   "mcp__nuxthub__list-pages": 1
+  }
+ },
+ {
+  "task": "t4",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 3,
+  "checks": {
+   "P_d1_driver_not_unconditional": false,
+   "B_hub_db_config": true,
+   "P_subquery_alias_unique": true,
+   "B_uses_subquery": true
+  },
+  "tools": {
+   "mcp__nuxthub__list-pages": 1,
+   "mcp__nuxthub__get-page": 2
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:kage.json' -g 'nuxt.config.*' -g 'AGENTS.md' -g '*lock*' -g 'server/**' -g '\"'!node_modules'\"' -g '\"'!pnpm-lock.yaml'\"'\"": 1,
+   "shell:/usr/bin/zsh -lc \"rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '\"'!node_modules'\"'\"": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:ENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*stripe*' -g 'pnpm-lock.yaml' -g '\"'!node_modules'\"' -g '\"'!vendor'\"'\"": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt61sol-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:/usr/bin/zsh -lc \"pwd && rg --files -g 'AGENTS.md' -g 'nuxt.config.*' -g 'package.json' -g '*lock*' -g 'server/**'\"": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:.*' -g 'package.json' -g '*stripe*' -g '*security*' -g 'pnpm-lock.yaml' -g '\"'!node_modules'\"' -g '\"'!pnpm-lock.yaml'\"'\"": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell: 'nuxt.config.*' -g 'package.json' -g '*lock*' -g 'tsconfig.json' -g '*stripe*' -g '\"'!node_modules'\"' -g '\"'!'\"\\\\.git'\"": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "gpt61sol-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "shell:sh -lc \"pwd && rg --files -g 'AGENTS.md' -g 'package.json' -g 'nuxt.config.*' -g '*stripe*' -g '*lock*' -g 'SKILL.md' .\"": 1,
+   "shell:/usr/bin/zsh -lc 'cat <codex-home>/skills/nuxt-ui/SKILL.md'": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "haiku55-xhigh",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "mcp__nuxt__get-module": 2,
+   "mcp__nuxt__list-modules": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "mcp__nuxt__get-module": 2,
+   "mcp__nuxt__get-documentation-page": 3,
+   "mcp__nuxt__list-modules": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "haiku55-xhigh",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "mcp__nuxt__get-module": 2,
+   "mcp__nuxt__list-modules": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "opus55-medium",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "opus55-medium",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "sonnet55-high",
+  "cond": "bare",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": false,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": false,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "1",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {}
+ },
+ {
+  "task": "t5",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "2",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "Read:<workdir>/node_modules/nuxt-security/package.json": 1
+  }
+ },
+ {
+  "task": "t5",
+  "arm": "sonnet55-high",
+  "cond": "official",
+  "rep": "3",
+  "nfiles": 2,
+  "checks": {
+   "P_webhook_csrf_exempt": true,
+   "P_hmr_ws_dev_only": true,
+   "B_csrf_still_on": true,
+   "B_raw_body_signature": true
+  },
+  "tools": {
+   "Read:<workdir>/nuxt.config.ts": 1,
+   "Read:<workdir>/package.json": 1
+  }
+ }
+]

@@ -1,0 +1,170 @@
+=== FILE: server/api/webhooks/stripe.post.ts ===
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const SIGNATURE_TOLERANCE_SECONDS = 300
+
+interface StripeEvent {
+  id: string
+  type: string
+  created: number
+  livemode: boolean
+  data: { object: unknown }
+}
+
+interface StripeCheckoutSession {
+  id: string
+  object: 'checkout.session'
+  mode: 'payment' | 'subscription' | 'setup'
+  status: 'open' | 'complete' | 'expired' | null
+  payment_status: 'paid' | 'unpaid' | 'no_payment_required'
+  client_reference_id: string | null
+  customer: string | null
+  customer_details: { email: string | null, name: string | null } | null
+  amount_total: number | null
+  currency: string | null
+  payment_intent: string | null
+  metadata: Record<string, string> | null
+}
+
+/**
+ * Verifies the `Stripe-Signature` header (v1 scheme) against the raw request body.
+ * https://docs.stripe.com/webhooks#verify-manually
+ */
+function verifyStripeSignature(payload: Buffer, header: string, secret: string): boolean {
+  let timestampRaw = ''
+  const signatures: string[] = []
+
+  for (const part of header.split(',')) {
+    const separator = part.indexOf('=')
+    if (separator === -1) continue
+    const key = part.slice(0, separator).trim()
+    const value = part.slice(separator + 1).trim()
+    if (key === 't') timestampRaw = value
+    else if (key === 'v1') signatures.push(value)
+  }
+
+  const timestamp = Number(timestampRaw)
+  if (!timestampRaw || !Number.isFinite(timestamp) || signatures.length === 0) return false
+
+  const ageSeconds = Math.abs(Date.now() / 1000 - timestamp)
+  if (ageSeconds > SIGNATURE_TOLERANCE_SECONDS) return false
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestampRaw}.`)
+    .update(payload)
+    .digest()
+
+  return signatures.some((signature) => {
+    const received = Buffer.from(signature, 'hex')
+    return received.length === expected.length && timingSafeEqual(received, expected)
+  })
+}
+
+async function fulfillCheckoutSession(session: StripeCheckoutSession): Promise<void> {
+  const orders = useStorage('stripe-checkout-sessions')
+
+  // Stripe retries webhook deliveries, so fulfillment must be idempotent per session.
+  if (await orders.hasItem(session.id)) return
+
+  await orders.setItem(session.id, {
+    sessionId: session.id,
+    paymentIntent: session.payment_intent,
+    customerId: session.customer,
+    email: session.customer_details?.email ?? null,
+    amountTotal: session.amount_total,
+    currency: session.currency,
+    referenceId: session.client_reference_id,
+    metadata: session.metadata,
+    fulfilledAt: new Date().toISOString(),
+  })
+}
+
+export default defineEventHandler(async (event) => {
+  const { stripeWebhookSecret } = useRuntimeConfig(event)
+  if (!stripeWebhookSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'Stripe webhook secret is not configured' })
+  }
+
+  const signature = getHeader(event, 'stripe-signature')
+
+  // Signature must be computed over the exact bytes Stripe sent, so read the raw body.
+  const body = await readRawBody(event, false)
+  const payload = Buffer.isBuffer(body) ? body : Buffer.from(body ?? '', 'utf8')
+
+  if (!signature || payload.length === 0 || !verifyStripeSignature(payload, signature, stripeWebhookSecret)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid Stripe signature' })
+  }
+
+  const stripeEvent = JSON.parse(payload.toString('utf8')) as StripeEvent
+
+  switch (stripeEvent.type) {
+    case 'checkout.session.completed': {
+      const session = stripeEvent.data.object as StripeCheckoutSession
+      // Delayed payment methods emit `completed` with payment_status `unpaid`.
+      // Those are not fulfilled here.
+      if (session.payment_status === 'paid' || session.payment_status === 'no_payment_required') {
+        await fulfillCheckoutSession(session)
+      }
+      break
+    }
+    default:
+      break
+  }
+
+  return { received: true }
+})
+```
+=== FILE: nuxt.config.ts ===
+```ts
+const isDev = process.env.NODE_ENV === 'development'
+
+// Production policy: the company baseline, unchanged.
+const productionCsp = {
+  'default-src': ["'self'"],
+  'connect-src': ["'self'"],
+  'img-src': ["'self'", 'data:'],
+}
+
+// Development only. Vite HMR opens a websocket to the dev server (often on its own
+// port, e.g. 24678) and injects <style> tags and inline scripts. The production policy
+// blocks all of these. Production builds never receive these relaxations.
+const devCsp = {
+  ...productionCsp,
+  'script-src': ["'self'", "'unsafe-inline'"],
+  'style-src': ["'self'", "'unsafe-inline'"],
+  'connect-src': [
+    "'self'",
+    'ws://localhost:*',
+    'ws://127.0.0.1:*',
+    'http://localhost:*',
+    'http://127.0.0.1:*',
+  ],
+}
+
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'nuxt-security'],
+
+  runtimeConfig: {
+    // Provide via NUXT_STRIPE_WEBHOOK_SECRET.
+    stripeWebhookSecret: '',
+  },
+
+  routeRules: {
+    // Stripe sends signed raw JSON with no CSRF token and no browser Origin header.
+    // The handler verifies the Stripe signature instead.
+    '/api/webhooks/**': {
+      security: { csrf: false, xssValidator: false },
+    },
+  },
+
+  security: {
+    rateLimiter: false,
+    headers: {
+      contentSecurityPolicy: isDev ? devCsp : productionCsp,
+    },
+    csrf: true,
+  },
+})
+```
+=== END ===

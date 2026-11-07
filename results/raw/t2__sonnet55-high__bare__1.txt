@@ -1,0 +1,169 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+const DEFAULT_SORT = 'createdAt'
+
+const sortItems = [
+  { label: 'Newest first', value: 'createdAt' },
+  { label: 'Order ID', value: 'id' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+
+const route = useRoute()
+const router = useRouter()
+
+function firstQueryValue(value: unknown): string | undefined {
+  const v = Array.isArray(value) ? value[0] : value
+  return typeof v === 'string' ? v : undefined
+}
+
+const page = computed<number>({
+  get: () => {
+    const n = Number.parseInt(firstQueryValue(route.query.page) ?? '1', 10)
+    return Number.isFinite(n) && n > 0 ? n : 1
+  },
+  set: (value) => {
+    router.push({ query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed<string>({
+  get: () => {
+    const s = firstQueryValue(route.query.sort)
+    return s && sortItems.some(item => item.value === s) ? s : DEFAULT_SORT
+  },
+  set: (value) => {
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { $api } = useNuxtApp()
+
+const { data, status, error } = await useFetch<OrdersResponse>('/api/orders', {
+  $fetch: $api,
+  query: { page, sort },
+  default: () => ({ items: [], total: 0 })
+})
+
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+const columns: TableColumn<Order>[] = [
+  {
+    accessorKey: 'id',
+    header: 'Order'
+  },
+  {
+    accessorKey: 'customer',
+    header: 'Customer'
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status'
+  },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currency.format(Number(row.getValue('total')))
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => new Date(row.getValue<string>('createdAt')).toLocaleString()
+  }
+]
+</script>
+
+<template>
+  <UContainer class="py-6 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-xl font-semibold">
+        Orders
+      </h1>
+
+      <USelect
+        v-model="sort"
+        :items="sortItems"
+        class="w-48"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.statusMessage || error.message"
+    />
+
+    <UTable
+      :data="data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+      class="w-full"
+    />
+
+    <div class="flex justify-center">
+      <UPagination
+        v-model:page="page"
+        :total="data.total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+// Wraps $fetch so every request to /api carries `Authorization: Bearer <token>`.
+// - Client: globalThis.$fetch is replaced, so all $fetch/useFetch calls are covered.
+// - Server: the global is shared across concurrent requests, so it is NOT patched
+//   (that would leak one user's token into another's request). On the server, use
+//   the per-request instance via `useNuxtApp().$api`, e.g. `useFetch(url, { $fetch: $api })`.
+export default defineNuxtPlugin(() => {
+  const token = useCookie<string | null | undefined>('token')
+
+  const api = $fetch.create({
+    onRequest({ request, options }) {
+      const url = typeof request === 'string'
+        ? request
+        : request instanceof URL
+          ? request.pathname
+          : request.url
+
+      const isApi = url === '/api' || url.startsWith('/api/') || url.startsWith('/api?')
+      if (!isApi || !token.value) {
+        return
+      }
+
+      const headers = new Headers(options.headers)
+      headers.set('Authorization', `Bearer ${token.value}`)
+      options.headers = headers
+    }
+  })
+
+  if (import.meta.client) {
+    globalThis.$fetch = api as typeof $fetch
+  }
+
+  return {
+    provide: {
+      api
+    }
+  }
+})
+=== END ===

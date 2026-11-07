@@ -1,0 +1,188 @@
+=== FILE: app/pages/orders.vue ===
+<script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
+
+interface Order {
+  id: string | number
+  customer: string
+  status: string
+  total: number
+  createdAt: string
+}
+
+interface OrdersResponse {
+  items: Order[]
+  total: number
+}
+
+const PAGE_SIZE = 20
+
+const sortOptions = [
+  { label: 'Newest first', value: 'createdAt' },
+  { label: 'Customer', value: 'customer' },
+  { label: 'Status', value: 'status' },
+  { label: 'Total', value: 'total' }
+]
+const DEFAULT_SORT = sortOptions[0]!.value
+
+useSeoMeta({ title: 'Orders' })
+
+const route = useRoute()
+const router = useRouter()
+
+const page = computed<number>({
+  get() {
+    const value = Number(route.query.page)
+    return Number.isInteger(value) && value > 0 ? value : 1
+  },
+  set(value) {
+    router.push({ query: { ...route.query, page: String(value) } })
+  }
+})
+
+const sort = computed<string>({
+  get() {
+    const value = route.query.sort
+    return typeof value === 'string' && sortOptions.some(option => option.value === value)
+      ? value
+      : DEFAULT_SORT
+  },
+  set(value) {
+    // Changing the sort always returns to the first page.
+    router.push({ query: { ...route.query, sort: value, page: '1' } })
+  }
+})
+
+const { data, status, error, refresh } = await useFetch<OrdersResponse>('/api/orders', {
+  query: { page, sort },
+  default: () => ({ items: [], total: 0 })
+})
+
+const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+const columns: TableColumn<Order>[] = [
+  { accessorKey: 'id', header: 'Order' },
+  { accessorKey: 'customer', header: 'Customer' },
+  { accessorKey: 'status', header: 'Status' },
+  {
+    accessorKey: 'total',
+    header: 'Total',
+    cell: ({ row }) => currencyFormatter.format(Number(row.original.total))
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString('en-US')
+  }
+]
+</script>
+
+<template>
+  <UContainer class="py-8 space-y-4">
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-xl font-semibold">
+        Orders
+      </h1>
+
+      <USelect
+        v-model="sort"
+        :items="sortOptions"
+        value-key="value"
+        label-key="label"
+        class="w-48"
+        aria-label="Sort orders"
+      />
+    </div>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Failed to load orders"
+      :description="error.statusMessage || error.message"
+      :actions="[{ label: 'Retry', onClick: () => refresh() }]"
+    />
+
+    <UTable
+      :data="data.items"
+      :columns="columns"
+      :loading="status === 'pending'"
+      class="border border-default rounded-lg"
+    />
+
+    <div class="flex items-center justify-between gap-4">
+      <span class="text-sm text-muted">{{ data.total }} orders</span>
+
+      <UPagination
+        v-model:page="page"
+        :total="data.total"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
+</template>
+=== FILE: app/plugins/api.ts ===
+const INSTALLED = Symbol.for('app:api-auth-installed')
+
+type TokenGetter = () => string | null | undefined
+
+function isApiRequest(request: unknown): boolean {
+  const base = import.meta.client ? window.location.origin : 'http://internal.invalid'
+
+  let raw: string
+  if (typeof request === 'string') {
+    raw = request
+  } else if (request instanceof URL) {
+    raw = request.href
+  } else if (request && typeof (request as Request).url === 'string') {
+    raw = (request as Request).url
+  } else {
+    return false
+  }
+
+  try {
+    const url = new URL(raw, base)
+    return url.origin === base && (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+  } catch {
+    return false
+  }
+}
+
+function install(getToken: TokenGetter) {
+  const original = globalThis.$fetch
+
+  // Replace the global $fetch so $fetch, useFetch and useAsyncData all get the header.
+  globalThis.$fetch = original.create({
+    onRequest({ request, options }) {
+      if (!isApiRequest(request)) return
+
+      const token = getToken()
+      if (!token) return
+
+      const headers = new Headers(options.headers as HeadersInit | undefined)
+      headers.set('Authorization', `Bearer ${token}`)
+      options.headers = headers
+    }
+  })
+}
+
+export default defineNuxtPlugin({
+  name: 'api-auth',
+  setup() {
+    const globals = globalThis as Record<symbol, unknown>
+
+    // The global $fetch is shared by every request on the server, so install the wrapper
+    // only once per process and resolve the token from the current request at call time.
+    if (globals[INSTALLED]) return
+
+    if (import.meta.client) {
+      const token = useCookie<string | null>('token')
+      install(() => token.value)
+    } else {
+      install(() => (tryUseNuxtApp() ? useCookie<string | null>('token').value : null))
+    }
+
+    globals[INSTALLED] = true
+  }
+})
+=== END ===

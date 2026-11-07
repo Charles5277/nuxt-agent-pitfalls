@@ -1,0 +1,112 @@
+=== FILE: server/api/users/[id].patch.ts ===
+import { z } from 'zod'
+import { and, eq, ne } from 'drizzle-orm'
+import { users } from '../../db/schema'
+
+const bodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    email: z.string().trim().toLowerCase().max(254).email().optional()
+  })
+  .strict()
+  .refine(body => body.name !== undefined || body.email !== undefined, {
+    message: 'At least one of name or email is required'
+  })
+
+export default defineEventHandler(async (event) => {
+  const { user: sessionUser } = await requireUserSession(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing user id' })
+  }
+
+  // Users may only update their own profile
+  if (sessionUser.id !== id) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  const body = await readValidatedBody(event, (data) => {
+    const result = bodySchema.safeParse(data)
+    if (!result.success) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid request body',
+        data: result.error.issues
+      })
+    }
+    return result.data
+  })
+
+  const db = useDB()
+
+  if (body.email !== undefined) {
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.email, body.email), ne(users.id, id)))
+      .limit(1)
+
+    if (existing) {
+      throw createError({ statusCode: 409, statusMessage: 'Email is already in use' })
+    }
+  }
+
+  const updates: { name?: string, email?: string } = {}
+  if (body.name !== undefined) updates.name = body.name
+  if (body.email !== undefined) updates.email = body.email
+
+  const [updated] = await db
+    .update(users)
+    .set(updates)
+    .where(eq(users.id, id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt
+    })
+
+  if (!updated) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  }
+
+  return updated
+})
+=== FILE: server/api/me/dashboard.get.ts ===
+// Cache is keyed per user and wraps only the slow computation.
+// Authentication runs on every request, outside of the cache, so one user's
+// stats can never be served to another user or to an unauthenticated caller.
+const getCachedUserStats = defineCachedFunction(
+  (userId: string) => computeUserStats(userId),
+  {
+    name: 'user-stats',
+    maxAge: 60,
+    getKey: (userId: string) => userId
+  }
+)
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireUserSession(event)
+
+  setResponseHeader(event, 'Cache-Control', 'private, no-store')
+
+  return await getCachedUserStats(user.id)
+})
+=== FILE: nuxt.config.ts ===
+export default defineNuxtConfig({
+  compatibilityDate: '2025-07-15',
+  devtools: { enabled: true },
+
+  modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  runtimeConfig: {
+    // Exposed to both server and browser.
+    // Override with the NUXT_PUBLIC_API_BASE environment variable.
+    public: {
+      apiBase: 'https://api.example.com'
+    }
+  }
+})
+=== END ===
